@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}卫星管理 - Plotinus 系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>我的卫星列表</h2>
+    <a href="{{ url_for('satellite.add') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> 添加卫星
+    </a>
+</div>
+
+{% if not satellites %}
+<div class="alert alert-info">
+    暂无卫星数据，请先<a href="{{ url_for('constellation.add') }}">创建星座</a>，再添加卫星
+</div>
+{% else %}
+<div class="card shadow">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <!-- 表格内容保持不变 -->
+            <thead class="table-light">
+                <tr>
+                    <th>所属星座</th>
+                    <th>卫星编号</th>
+                    <th>信息预览</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in satellites %}
+                <tr>
+                    <td>{{ s.constellation.constellation_name }}</td>
+                    <td>{{ s.satellite_id }}</td>
+                    <td>{{ s.info_line1|truncate(50) }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('satellite.detail', id=s.id) }}" class="btn btn-outline-primary">详情</a>
+                            <a href="{{ url_for('satellite.edit', id=s.id) }}" class="btn btn-outline-secondary">编辑</a>
+                            <a href="{{ url_for('satellite.delete', id=s.id) }}" class="btn btn-outline-danger" onclick="return confirm('确定删除该卫星？关联关系也会被删除')">删除</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页控件 -->
+    {% if pagination.pages > 1 %}
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination justify-content-center">
+                <!-- 上一页 -->
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('satellite.list', page=pagination.prev_num) }}">
+                        上一页
+                    </a>
+                </li>
+
+                <!-- 页码 -->
+                {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=3) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('satellite.list', page=page_num) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- 下一页 -->
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('satellite.list', page=pagination.next_num) }}">
+                        下一页
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

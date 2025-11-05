@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - Plotinus{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Plotinus</h1>
+    <p class="lead">星座管理平台</p>
+    <hr class="my-4">
+    
+    {% if g.user %}
+        <p>您已登录，可以使用以下功能：</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('constellation.list') }}" class="btn btn-primary">星座管理</a>
+            <a href="{{ url_for('satellite.list') }}" class="btn btn-secondary">卫星管理</a>
+            <a href="{{ url_for('base.list') }}" class="btn btn-info">基座管理</a>
+            <a href="{{ url_for('constellation.export') }}" class="btn btn-success">
+                <i class="bi bi-download"></i> 星座导出
+            </a>
+        </div>
+    {% else %}
+        <p>请先登录以使用系统功能</p>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">登录</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">注册</a>
+    {% endif %}
+</div>
+{% endblock %}

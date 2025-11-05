@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{{ base.base_name }} - 基座详情{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{{ base.base_name }} 详情</h2>
+    <div>
+        <a href="{{ url_for('base.edit', id=base.id) }}" class="btn btn-primary">编辑基座</a>
+        <a href="{{ url_for('base.list') }}" class="btn btn-outline-secondary">返回列表</a>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">基座信息</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <p><strong>基座名称：</strong>{{ base.base_name }}</p>
+                <p><strong>详细信息：</strong></p>
+                <pre class="bg-light p-3 rounded">{{ base.info }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

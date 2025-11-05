@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if satellite %}编辑卫星{% else %}添加卫星{% endif %} - Plotinus 系统
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{% if satellite %}编辑卫星{% else %}添加新卫星{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="constellation_id" class="form-label">所属星座 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="constellation_id" name="constellation_id" required>
+                            {% for c in constellations %}
+                            <option value="{{ c.id }}" {% if satellite and satellite.constellation_id == c.id %}selected{% endif %}>
+                                {{ c.constellation_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="satellite_id" class="form-label">卫星编号 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="satellite_id" name="satellite_id" 
+                               value="{{ satellite.satellite_id if satellite else '' }}" 
+                               min="1" required>
+                        <small class="text-muted">同一星座内编号需唯一</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="info_line1" class="form-label">信息行1 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="info_line1" name="info_line1" rows="2" required>
+                            {{ satellite.info_line1 if satellite else '' }}
+                        </textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="info_line2" class="form-label">信息行2 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="info_line2" name="info_line2" rows="2" required>
+                            {{ satellite.info_line2 if satellite else '' }}
+                        </textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">{% if satellite %}更新{% else %}添加{% endif %}</button>
+                        <a href="{{ url_for('satellite.list') }}" class="btn btn-outline-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

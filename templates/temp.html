@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+
+{% block title %}{{ constellation.constellation_name }} - 星座详情{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{{ constellation.constellation_name }} 详情</h2>
+    <div>
+        <a href="{{ url_for('satellite.add') }}" class="btn btn-success">添加卫星</a>
+        <a href="{{ url_for('constellation.edit', id=constellation.id) }}" class="btn btn-primary">编辑星座</a>
+        <a href="{{ url_for('constellation.list') }}" class="btn btn-outline-secondary">返回列表</a>
+    </div>
+</div>
+
+<!-- 星座基本信息 -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">星座信息</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>星座名称：</strong>{{ constellation.constellation_name }}</p>
+                <p><strong>计划卫星数量：</strong>{{ constellation.satellite_count }}</p>
+                <p><strong>当前卫星数量：</strong>{{ satellites|length }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 下属卫星列表 -->
+<div class="card shadow">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">下属卫星</h5>
+        <a href="{{ url_for('satellite.add') }}" class="btn btn-sm btn-primary">添加卫星</a>
+    </div>
+    <div class="card-body">
+        {% if not satellites %}
+        <div class="alert alert-info">该星座暂无卫星，<a href="{{ url_for('satellite.add') }}">点击添加</a></div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>卫星编号</th>
+                        <th>信息预览</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in satellites %}
+                    <tr>
+                        <td>{{ s.satellite_id }}</td>
+                        <td>{{ s.info_line1|truncate(50) }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('satellite.detail', id=s.id) }}" class="btn btn-outline-primary">详情</a>
+                                <a href="{{ url_for('satellite.edit', id=s.id) }}" class="btn btn-outline-secondary">编辑</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+
+#### templates/constellation/form.html（星座表单）
+```html
+{% extends "base.html" %}
+
+{% block title %}
+{% if constellation %}编辑星座{% else %}添加星座{% endif %} - Plotinus 系统
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{% if constellation %}编辑星座{% else %}添加新星座{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">星座名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ constellation.constellation_name if constellation else '' }}" 
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="satellite_count" class="form-label">计划卫星数量 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="satellite_count" name="satellite_count" 
+                               value="{{ constellation.satellite_count if constellation else '1' }}" 
+                               min="1" required>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">{% if constellation %}更新{% else %}添加{% endif %}</button>
+                        <a href="{{ url_for('constellation.list') }}" class="btn btn-outline-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+#### templates/satellite/list.html（卫星列表）
+```html
+{% extends "base.html" %}
+
+{% block title %}卫星管理 - Plotinus 系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>我的卫星列表</h2>
+    <a href="{{ url_for('satellite.add') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> 添加卫星
+    </a>
+</div>
+
+{% if not satellites %}
+<div class="alert alert-info">
+    暂无卫星数据，请先<a href="{{ url_for('constellation.add') }}">创建星座</a>，再添加卫星
+</div>
+{% else %}
+<div class="card shadow">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>所属星座</th>
+                    <th>卫星编号</th>
+                    <th>信息预览</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in satellites %}
+                <tr>
+                    <td>{{ s.constellation.constellation_name }}</td>
+                    <td>{{ s.satellite_id }}</td>
+                    <td>{{ s.info_line1|truncate(50) }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('satellite.detail', id=s.id) }}" class="btn btn-outline-primary">详情</a>
+                            <a href="{{ url_for('satellite.edit', id=s.id) }}" class="btn btn-outline-secondary">编辑</a>
+                            <a href="{{ url_for('satellite.delete', id=s.id) }}" class="btn btn-outline-danger" onclick="return confirm('确定删除该卫星？关联关系也会被删除')">删除</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+
+#### templates/satellite/detail.html（卫星详情）
+```html
+{% extends "base.html" %}
+
+{% block title %}卫星 {{ satellite.satellite_id }} - 详情{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>卫星 {{ satellite.satellite_id }} 详情</h2>
+    <div>
+        <a href="{{ url_for('satellite.edit', id=satellite.id) }}" class="btn btn-primary">编辑卫星</a>
+        <a href="{{ url_for('satellite.list') }}" class="btn btn-outline-secondary">返回列表</a>
+    </div>
+</div>
+
+<!-- 卫星基本信息 -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">卫星信息</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>所属星座：</strong>{{ satellite.constellation.constellation_name }}</p>
+                <p><strong>卫星编号：</strong>{{ satellite.satellite_id }}</p>
+                <p><strong>信息行1：</strong>{{ satellite.info_line1 }}</p>
+                <p><strong>信息行2：</strong>{{ satellite.info_line2 }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 卫星关联关系 -->
+<div class="card shadow">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">关联卫星</h5>
+        <a href="{{ url_for('satellite.add_link') }}" class="btn btn-sm btn-primary">添加关联</a>
+    </div>
+    <div class="card-body">
+        {% if not links_from and not links_to %}
+        <div class="alert alert-info">该卫星暂无关联关系，<a href="{{ url_for('satellite.add_link') }}">点击添加</a></div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>关联卫星编号</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for link in links_from %}
+                    <tr>
+                        <td>{{ link.satellite2.satellite_id }}</td>
+                        <td>
+                            <a href="{{ url_for('satellite.delete_link', id=link.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('确定删除该关联？')">删除关联</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% for link in links_to %}
+                    <tr>
+                        <td>{{ link.satellite1.satellite_id }}</td>
+                        <td>
+                            <a href="{{ url_for('satellite.delete_link', id=link.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('确定删除该关联？')">删除关联</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+
+#### templates/satellite/form.html（卫星表单）
+```html
+{% extends "base.html" %}
+
+{% block title %}
+{% if satellite %}编辑卫星{% else %}添加卫星{% endif %} - Plotinus 系统
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{% if satellite %}编辑卫星{% else %}添加新卫星{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="constellation_id" class="form-label">所属星座 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="constellation_id" name="constellation_id" required>
+                            {% for c in constellations %}
+                            <option value="{{ c.id }}" {% if satellite and satellite.constellation_id == c.id %}selected{% endif %}>
+                                {{ c.constellation_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="satellite_id" class="form-label">卫星编号 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="satellite_id" name="satellite_id" 
+                               value="{{ satellite.satellite_id if satellite else '' }}" 
+                               min="1" required>
+                        <small class="text-muted">同一星座内编号需唯一</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="info_line1" class="form-label">信息行1 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="info_line1" name="info_line1" rows="2" required>
+                            {{ satellite.info_line1 if satellite else '' }}
+                        </textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="info_line2" class="form-label">信息行2 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="info_line2" name="info_line2" rows="2" required>
+                            {{ satellite.info_line2 if satellite else '' }}
+                        </textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">{% if satellite %}更新{% else %}添加{% endif %}</button>
+                        <a href="{{ url_for('satellite.list') }}" class="btn btn-outline-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+#### templates/satellite/link_form.html（卫星关联表单）
+```html
+{% extends "base.html" %}
+
+{% block title %}卫星关联 - Plotinus 系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">添加卫星关联</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="constellation_id" class="form-label">选择星座 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="constellation_id" name="constellation_id" onchange="this.form.submit()" required>
+                            <option value="">-- 请选择星座 --</option>
+                            {% for c in constellations %}
+                            <option value="{{ c.id }}" {% if selected_constellation == c.id|string %}selected{% endif %}>
+                                {{ c.constellation_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">卫星关联必须基于同一星座</small>
+                    </div>
+
+                    {% if selected_constellation %}
+                    <div class="row gap-3">
+                        <div class="col-md-6">
+                            <label for="satellite_id1" class="form-label">卫星1 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="satellite_id1" name="satellite_id1" required>
+                                <option value="">-- 请选择卫星 --</option>
+                                {% for s in satellites %}
+                                <option value="{{ s.id }}">{{ s.satellite_id }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="satellite_id2" class="form-label">卫星2 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="satellite_id2" name="satellite_id2" required>
+                                <option value="">-- 请选择卫星 --</option>
+                                {% for s in satellites %}
+                                <option value="{{ s.id }}">{{ s.satellite_id }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">建立关联</button>
+                        <a href="{{ url_for('satellite.list') }}" class="btn btn-outline-secondary">取消</a>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // 当星座选择变化时，自动加载该星座下的卫星
+    document.getElementById('constellation_id').addEventListener('change', function() {
+        const constellationId = this.value;
+        if (constellationId) {
+            // 发送请求获取该星座下的卫星
+            fetch(`/satellites/constellation/${constellationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const sat1Select = document.getElementById('satellite_id1');
+                    const sat2Select = document.getElementById('satellite_id2');
+                    
+                    // 清空现有选项
+                    sat1Select.innerHTML = '<option value="">-- 请选择卫星 --</option>';
+                    sat2Select.innerHTML = '<option value="">-- 请选择卫星 --</option>';
+                    
+                    // 添加新选项
+                    data.forEach(satellite => {
+                        const option1 = document.createElement('option');
+                        option1.value = satellite.id;
+                        option1.textContent = satellite.satellite_id;
+                        sat1Select.appendChild(option1);
+                        
+                        const option2 = document.createElement('option');
+                        option2.value = satellite.id;
+                        option2.textContent = satellite.satellite_id;
+                        sat2Select.appendChild(option2);
+                    });
+                });
+        }
+    });
+</script>
+{% endblock %}
+
+
+#### templates/base/list.html（基座列表）
+```html
+{% extends "base.html" %}
+
+{% block title %}基座管理 - Plotinus 系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>我的基座列表</h2>
+    <a href="{{ url_for('base.add') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> 添加基座
+    </a>
+</div>
+
+{% if not bases %}
+<div class="alert alert-info">
+    暂无基座数据，<a href="{{ url_for('base.add') }}">点击添加</a>
+</div>
+{% else %}
+<div class="card shadow">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>基座名称</th>
+                    <th>信息预览</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bases %}
+                <tr>
+                    <td>{{ b.base_name }}</td>
+                    <td>{{ b.info|truncate(50) }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('base.detail', id=b.id) }}" class="btn btn-outline-primary">详情</a>
+                            <a href="{{ url_for('base.edit', id=b.id) }}" class="btn btn-outline-secondary">编辑</a>
+                            <a href="{{ url_for('base.delete', id=b.id) }}" class="btn btn-outline-danger" onclick="return confirm('确定删除该基座？')">删除</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+
+#### templates/base/detail.html（基座详情）
+```html
+{% extends "base.html" %}
+
+{% block title %}{{ base.base_name }} - 基座详情{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{{ base.base_name }} 详情</h2>
+    <div>
+        <a href="{{ url_for('base.edit', id=base.id) }}" class="btn btn-primary">编辑基座</a>
+        <a href="{{ url_for('base.list') }}" class="btn btn-outline-secondary">返回列表</a>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">基座信息</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <p><strong>基座名称：</strong>{{ base.base_name }}</p>
+                <p><strong>详细信息：</strong></p>
+                <pre class="bg-light p-3 rounded">{{ base.info }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+#### templates/base/form.html（基座表单）
+```html
+{% extends "base.html" %}
+
+{% block title %}
+{% if base %}编辑基座{% else %}添加基座{% endif %} - Plotinus 系统
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{% if base %}编辑基座{% else %}添加新基座{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="base_name" class="form-label">基座名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="base_name" name="base_name" 
+                               value="{{ base.base_name if base else '' }}" 
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="info" class="form-label">基座信息 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="info" name="info" rows="5" required>
+                            {{ base.info if base else '' }}
+                        </textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">{% if base %}更新{% else %}添加{% endif %}</button>
+                        <a href="{{ url_for('base.list') }}" class="btn btn-outline-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+### 8. 静态文件补充
+
+#### static/css/style.css
+```css
+body {
+    padding-top: 20px;
+    padding-bottom: 50px;
+    background-color: #f5f7fa;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.alert {
+    margin-bottom: 20px;
+}
+
+/* 表单控件样式优化 */
+.form-control:focus {
+    border-color: #165DFF;
+    box-shadow: 0 0 0 3px rgba(22, 93, 255, 0.1);
+}
+
+/* 按钮样式优化 */
+.btn {
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: #165DFF;
+    border-color: #165DFF;
+}
+
+.btn-primary:hover {
+    background-color: #0E42D2;
+    border-color: #0E42D2;
+}
+
+/* 表格悬停效果 */
+.table-hover tbody tr:hover {
+    background-color: rgba(22, 93, 255, 0.03);
+}
+
+/* 截断文本样式 */
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

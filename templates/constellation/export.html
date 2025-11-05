@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}导出星座数据 - Plotinus 系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">导出星座数据</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">选择要导出的星座 <span class="text-danger">*</span></label>
+                        <div class="form-check">
+                            {% for c in constellations %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="constellation_ids" 
+                                       value="{{ c.id }}" id="constellation_{{ c.id }}">
+                                <label class="form-check-label" for="constellation_{{ c.id }}">
+                                    {{ c.constellation_name }}（{{ c.satellite_count }}颗卫星）
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <h5>导出说明</h5>
+                        <ul class="text-muted">
+                            <li>将导出两个文件：tles.txt（卫星信息）和isls.txt（卫星关联）</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">开始导出</button>
+                        <a href="{{ url_for('constellation.list') }}" class="btn btn-outline-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

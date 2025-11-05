@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if base %}编辑基座{% else %}添加基座{% endif %} - Plotinus 系统
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{% if base %}编辑基座{% else %}添加新基座{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="base_name" class="form-label">基座名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="base_name" name="base_name" 
+                               value="{{ base.base_name if base else '' }}" 
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="info" class="form-label">基座信息 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="info" name="info" rows="5" required>
+                            {{ base.info if base else '' }}
+                        </textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">{% if base %}更新{% else %}添加{% endif %}</button>
+                        <a href="{{ url_for('base.list') }}" class="btn btn-outline-secondary">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

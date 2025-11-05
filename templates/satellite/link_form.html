@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}卫星关联 - Plotinus 系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">添加卫星关联</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="constellation_id" class="form-label">选择星座 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="constellation_id" name="constellation_id" onchange="this.form.submit()" required>
+                            <option value="">-- 请选择星座 --</option>
+                            {% for c in constellations %}
+                            <option value="{{ c.id }}" {% if selected_constellation == c.id|string %}selected{% endif %}>
+                                {{ c.constellation_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">卫星关联必须基于同一星座</small>
+                    </div>
+
+                    {% if selected_constellation %}
+                    <div class="row gap-3">
+                        <div class="col-md-6">
+                            <label for="satellite_id1" class="form-label">卫星1 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="satellite_id1" name="satellite_id1" required>
+                                <option value="">-- 请选择卫星 --</option>
+                                {% for s in satellites %}
+                                <option value="{{ s.id }}">{{ s.satellite_id }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="satellite_id2" class="form-label">卫星2 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="satellite_id2" name="satellite_id2" required>
+                                <option value="">-- 请选择卫星 --</option>
+                                {% for s in satellites %}
+                                <option value="{{ s.id }}">{{ s.satellite_id }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">建立关联</button>
+                        <a href="{{ url_for('satellite.list') }}" class="btn btn-outline-secondary">取消</a>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // 当星座选择变化时，自动加载该星座下的卫星
+    document.getElementById('constellation_id').addEventListener('change', function() {
+        const constellationId = this.value;
+        if (constellationId) {
+            // 发送请求获取该星座下的卫星
+            fetch(`/satellites/constellation/${constellationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const sat1Select = document.getElementById('satellite_id1');
+                    const sat2Select = document.getElementById('satellite_id2');
+
+                    // 清空现有选项
+                    sat1Select.innerHTML = '<option value="">-- 请选择卫星 --</option>';
+                    sat2Select.innerHTML = '<option value="">-- 请选择卫星 --</option>';
+
+                    // 添加新选项
+                    data.forEach(satellite => {
+                        const option1 = document.createElement('option');
+                        option1.value = satellite.id;
+                        option1.textContent = satellite.satellite_id;
+                        sat1Select.appendChild(option1);
+
+                        const option2 = document.createElement('option');
+                        option2.value = satellite.id;
+                        option2.textContent = satellite.satellite_id;
+                        sat2Select.appendChild(option2);
+                    });
+                });
+        }
+    });
+</script>
+{% endblock %}
