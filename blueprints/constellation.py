@@ -22,7 +22,7 @@ def import_satellites(constellation_id):
     constellation = ConstellationModel.query.get_or_404(constellation_id)
 
     # 开启权限校验（仅所有者可导入）
-    if constellation.user_id != g.user.id:  # 注意：原代码用了current_user，这里修正为g.user（与项目上下文一致）
+    if constellation.user_id != g.user.id:
         flash("无权限操作该星座", "danger")
         return redirect(url_for("constellation.list"))
 
@@ -64,11 +64,10 @@ def import_satellites(constellation_id):
                 continue
             lines.append((line_num, line_str))
 
-            # 每3行解析一个卫星（格式：行1：名称+ID，行2：信息1，行3：信息2）
+            # 每3行解析一个卫星
             if len(lines) == 3:
                 (num1, line1), (num2, line2), (num3, line3) = lines
                 try:
-                    # 解析卫星ID（末尾数字）并转换为整数
                     match = re.search(r"\s+(\d+)$", line1)
                     if not match:
                         raise ValueError("未找到卫星ID（格式应为：星座名称 数字ID）")
@@ -185,11 +184,8 @@ def generate_export_data(constellations):
     for idx, constellation in enumerate(constellations):
         satellites = SatelliteModel.query.filter_by(constellation_id=constellation.id).all()
         for sat in satellites:
-            # 第一行：星座名称 卫星ID
             tles_lines.append(f"{constellation.constellation_name} {sat.satellite_id}")
-            # 第二行：信息1
             tles_lines.append(sat.info_line1)
-            # 第三行：信息2
             tles_lines.append(sat.info_line2)
 
     # 生成ISL数据
@@ -225,8 +221,6 @@ def detail(id):
     # 获取当前页码（默认第1页，确保为整数）
     page = request.args.get("page", 1, type=int)
 
-    # 分页查询该星座下的卫星（每页20条）
-    # error_out=False：页码超出范围时返回空页，而非404
     pagination = SatelliteModel.query.filter_by(
         constellation_id=id
     ).order_by(
@@ -237,14 +231,13 @@ def detail(id):
         error_out=False
     )
 
-    # 当前页的卫星列表（pagination.items 即为当前页数据）
     satellites = pagination.items
 
     return render_template(
         "constellation/detail.html",
         constellation=constellation,
         satellites=satellites,
-        pagination=pagination  # 将分页对象传递给模板
+        pagination=pagination
     )
 
 
