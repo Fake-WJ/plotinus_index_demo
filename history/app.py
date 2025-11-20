@@ -1,13 +1,13 @@
 # 修改 plotinus_index/app.py
-from flask import Flask, render_template, g
+from flask import Flask, render_template
 from exts import db
 # 新增：导入 Flask-Migrate
 from flask_migrate import Migrate
 from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS, SECRET_KEY
-from blueprints.auth import bp as auth_bp
-from blueprints.constellation import bp as constellation_bp
-from blueprints.satellite import bp as satellite_bp
-from blueprints.base import bp as base_bp
+from history.blueprints.auth import bp as auth_bp
+from history.blueprints import bp as constellation_bp
+from history.blueprints.satellite import bp as satellite_bp
+from history.blueprints.base import bp as base_bp
 
 
 app = Flask(__name__)

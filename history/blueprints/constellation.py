@@ -1,8 +1,7 @@
 from flask import Blueprint, request, render_template, redirect, url_for, g, flash
-from sqlalchemy.sql.functions import current_user
-from exts import db
-from model import ConstellationModel, SatelliteModel, LinkedSatelliteModel
-from decorators import login_required
+from history.exts import db
+from history.model import ConstellationModel, SatelliteModel, LinkedSatelliteModel
+from history.decorators import login_required
 import re
 from sqlalchemy import select
 import chardet

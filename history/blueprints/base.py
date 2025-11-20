@@ -1,7 +1,7 @@
 from flask import Blueprint, request, render_template, redirect, url_for, g
-from exts import db
-from model import BaseModel
-from decorators import login_required
+from history.exts import db
+from history.model import BaseModel
+from history.decorators import login_required
 
 bp = Blueprint("base", __name__, url_prefix="/bases")
 

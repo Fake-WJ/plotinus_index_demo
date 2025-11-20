@@ -1,10 +1,9 @@
 import chardet
 from flask import Blueprint, request, render_template, redirect, url_for, g, flash
 
-from blueprints import constellation
-from exts import db
-from model import SatelliteModel, ConstellationModel, LinkedSatelliteModel
-from decorators import login_required
+from history.exts import db
+from history.model import SatelliteModel, ConstellationModel, LinkedSatelliteModel
+from history.decorators import login_required
 
 bp = Blueprint("satellite", __name__, url_prefix="/satellites")
 
