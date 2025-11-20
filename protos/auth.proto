@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package plotinus;
+
+import "common.proto";
+
+// 用户认证服务
+service AuthService {
+  // 用户注册
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // 用户登录
+  rpc Login(LoginRequest) returns (LoginResponse);
+
+  // 获取当前用户信息
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+}
+
+// 注册请求
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// 注册响应
+message RegisterResponse {
+  Status status = 1;
+  User user = 2;
+}
+
+// 登录请求
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// 登录响应
+message LoginResponse {
+  Status status = 1;
+  User user = 2;
+  string token = 3;  // JWT token for authentication
+}
+
+// 获取当前用户请求
+message GetCurrentUserRequest {
+  string token = 1;
+}
+
+// 获取当前用户响应
+message GetCurrentUserResponse {
+  Status status = 1;
+  User user = 2;
+}

@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package plotinus;
+
+import "common.proto";
+
+// 星座管理服务
+service ConstellationService {
+  // 获取星座列表
+  rpc ListConstellations(ListConstellationsRequest) returns (ListConstellationsResponse);
+
+  // 获取星座详情
+  rpc GetConstellation(GetConstellationRequest) returns (GetConstellationResponse);
+
+  // 创建星座
+  rpc CreateConstellation(CreateConstellationRequest) returns (CreateConstellationResponse);
+
+  // 更新星座
+  rpc UpdateConstellation(UpdateConstellationRequest) returns (UpdateConstellationResponse);
+
+  // 删除星座
+  rpc DeleteConstellation(DeleteConstellationRequest) returns (DeleteConstellationResponse);
+
+  // 批量导入卫星（客户端流式传输）
+  rpc ImportSatellites(stream ImportSatellitesRequest) returns (ImportSatellitesResponse);
+
+  // 导出星座数据
+  rpc ExportConstellations(ExportConstellationsRequest) returns (ExportConstellationsResponse);
+}
+
+// 星座信息
+message Constellation {
+  int32 id = 1;
+  string constellation_name = 2;
+  int32 satellite_count = 3;
+  int32 user_id = 4;
+}
+
+// 卫星简要信息（用于星座详情）
+message SatelliteInfo {
+  int32 id = 1;
+  int32 satellite_id = 2;
+  int32 constellation_id = 3;
+  string info_line1 = 4;
+  string info_line2 = 5;
+}
+
+// 获取星座列表请求
+message ListConstellationsRequest {
+  string token = 1;
+}
+
+// 获取星座列表响应
+message ListConstellationsResponse {
+  Status status = 1;
+  repeated Constellation constellations = 2;
+}
+
+// 获取星座详情请求
+message GetConstellationRequest {
+  string token = 1;
+  int32 constellation_id = 2;
+  PaginationRequest pagination = 3;
+}
+
+// 获取星座详情响应
+message GetConstellationResponse {
+  Status status = 1;
+  Constellation constellation = 2;
+  repeated SatelliteInfo satellites = 3;
+  PaginationResponse pagination = 4;
+}
+
+// 创建星座请求
+message CreateConstellationRequest {
+  string token = 1;
+  string constellation_name = 2;
+}
+
+// 创建星座响应
+message CreateConstellationResponse {
+  Status status = 1;
+  Constellation constellation = 2;
+}
+
+// 更新星座请求
+message UpdateConstellationRequest {
+  string token = 1;
+  int32 constellation_id = 2;
+  string constellation_name = 3;
+}
+
+// 更新星座响应
+message UpdateConstellationResponse {
+  Status status = 1;
+  Constellation constellation = 2;
+}
+
+// 删除星座请求
+message DeleteConstellationRequest {
+  string token = 1;
+  int32 constellation_id = 2;
+}
+
+// 删除星座响应
+message DeleteConstellationResponse {
+  Status status = 1;
+}
+
+// 导入卫星请求（流式）
+message ImportSatellitesRequest {
+  string token = 1;
+  int32 constellation_id = 2;
+  int32 satellite_id = 3;
+  string info_line1 = 4;
+  string info_line2 = 5;
+}
+
+// 导入卫星响应
+message ImportSatellitesResponse {
+  Status status = 1;
+  int32 success_count = 2;
+  int32 fail_count = 3;
+  repeated string errors = 4;
+}
+
+// 导出星座请求
+message ExportConstellationsRequest {
+  string token = 1;
+  repeated int32 constellation_ids = 2;
+}
+
+// 导出星座响应
+message ExportConstellationsResponse {
+  Status status = 1;
+  bytes zip_data = 2;  // ZIP文件的二进制数据
+}

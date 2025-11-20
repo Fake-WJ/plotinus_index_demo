@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package plotinus;
+
+import "common.proto";
+
+// 卫星管理服务
+service SatelliteService {
+  // 获取卫星列表（分页）
+  rpc ListSatellites(ListSatellitesRequest) returns (ListSatellitesResponse);
+
+  // 获取卫星详情
+  rpc GetSatellite(GetSatelliteRequest) returns (GetSatelliteResponse);
+
+  // 创建卫星
+  rpc CreateSatellite(CreateSatelliteRequest) returns (CreateSatelliteResponse);
+
+  // 更新卫星
+  rpc UpdateSatellite(UpdateSatelliteRequest) returns (UpdateSatelliteResponse);
+
+  // 删除卫星
+  rpc DeleteSatellite(DeleteSatelliteRequest) returns (DeleteSatelliteResponse);
+
+  // 按星座查询卫星
+  rpc GetSatellitesByConstellation(GetSatellitesByConstellationRequest) returns (GetSatellitesByConstellationResponse);
+
+  // 创建卫星关联
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
+
+  // 删除卫星关联
+  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse);
+
+  // 批量导入卫星关联（客户端流式传输）
+  rpc ImportLinks(stream ImportLinksRequest) returns (ImportLinksResponse);
+}
+
+// 卫星信息
+message Satellite {
+  int32 id = 1;
+  int32 satellite_id = 2;
+  int32 constellation_id = 3;
+  string info_line1 = 4;
+  string info_line2 = 5;
+}
+
+// 卫星关联信息
+message SatelliteLink {
+  int32 id = 1;
+  int32 satellite_id1 = 2;
+  int32 satellite_id2 = 3;
+  int32 constellation_id = 4;
+}
+
+// 获取卫星列表请求
+message ListSatellitesRequest {
+  string token = 1;
+  PaginationRequest pagination = 2;
+}
+
+// 获取卫星列表响应
+message ListSatellitesResponse {
+  Status status = 1;
+  repeated Satellite satellites = 2;
+  PaginationResponse pagination = 3;
+}
+
+// 获取卫星详情请求
+message GetSatelliteRequest {
+  string token = 1;
+  int32 satellite_id = 2;
+}
+
+// 获取卫星详情响应
+message GetSatelliteResponse {
+  Status status = 1;
+  Satellite satellite = 2;
+  repeated SatelliteLink links_from = 3;
+  repeated SatelliteLink links_to = 4;
+}
+
+// 创建卫星请求
+message CreateSatelliteRequest {
+  string token = 1;
+  int32 satellite_id = 2;
+  int32 constellation_id = 3;
+  string info_line1 = 4;
+  string info_line2 = 5;
+}
+
+// 创建卫星响应
+message CreateSatelliteResponse {
+  Status status = 1;
+  Satellite satellite = 2;
+}
+
+// 更新卫星请求
+message UpdateSatelliteRequest {
+  string token = 1;
+  int32 id = 2;
+  int32 satellite_id = 3;
+  int32 constellation_id = 4;
+  string info_line1 = 5;
+  string info_line2 = 6;
+}
+
+// 更新卫星响应
+message UpdateSatelliteResponse {
+  Status status = 1;
+  Satellite satellite = 2;
+}
+
+// 删除卫星请求
+message DeleteSatelliteRequest {
+  string token = 1;
+  int32 id = 2;
+}
+
+// 删除卫星响应
+message DeleteSatelliteResponse {
+  Status status = 1;
+}
+
+// 按星座查询卫星请求
+message GetSatellitesByConstellationRequest {
+  string token = 1;
+  int32 constellation_id = 2;
+}
+
+// 按星座查询卫星响应
+message GetSatellitesByConstellationResponse {
+  Status status = 1;
+  repeated Satellite satellites = 2;
+}
+
+// 创建卫星关联请求
+message CreateLinkRequest {
+  string token = 1;
+  int32 constellation_id = 2;
+  int32 satellite_id1 = 3;
+  int32 satellite_id2 = 4;
+}
+
+// 创建卫星关联响应
+message CreateLinkResponse {
+  Status status = 1;
+  SatelliteLink link = 2;
+}
+
+// 删除卫星关联请求
+message DeleteLinkRequest {
+  string token = 1;
+  int32 link_id = 2;
+}
+
+// 删除卫星关联响应
+message DeleteLinkResponse {
+  Status status = 1;
+}
+
+// 导入卫星关联请求（流式）
+message ImportLinksRequest {
+  string token = 1;
+  int32 constellation_id = 2;
+  int32 satellite_id1 = 3;
+  int32 satellite_id2 = 4;
+}
+
+// 导入卫星关联响应
+message ImportLinksResponse {
+  Status status = 1;
+  int32 success_count = 2;
+  int32 fail_count = 3;
+  repeated string errors = 4;
+}
