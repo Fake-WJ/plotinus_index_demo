@@ -103,7 +103,7 @@ message UpdateSatelliteRequest {
   int32 constellation_id = 4;
   string info_line1 = 5;
   string info_line2 = 6;
-  string description=6;
+  string description=7;
 }
 
 // 更新卫星响应
