@@ -32,7 +32,7 @@ message Base {
 
 // 获取基座列表请求
 message ListBasesRequest {
-  string token = 1;
+  string user_id = 1;
 }
 
 // 获取基座列表响应
@@ -43,7 +43,7 @@ message ListBasesResponse {
 
 // 获取基座详情请求
 message GetBaseRequest {
-  string token = 1;
+  string user_id = 1;
   int32 base_id = 2;
 }
 
@@ -55,7 +55,7 @@ message GetBaseResponse {
 
 // 创建基座请求
 message CreateBaseRequest {
-  string token = 1;
+  string user_id = 1;
   string base_name = 2;
   string info = 3;
 }
@@ -68,7 +68,7 @@ message CreateBaseResponse {
 
 // 更新基座请求
 message UpdateBaseRequest {
-  string token = 1;
+  string user_id = 1;
   int32 base_id = 2;
   string base_name = 3;
   string info = 4;
@@ -82,7 +82,7 @@ message UpdateBaseResponse {
 
 // 删除基座请求
 message DeleteBaseRequest {
-  string token = 1;
+  string user_id = 1;
   int32 base_id = 2;
 }
 

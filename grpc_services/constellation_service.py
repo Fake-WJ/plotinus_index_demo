@@ -3,6 +3,9 @@ gRPC星座服务实现
 """
 import sys
 import os
+
+from dal import UserDAL
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from grpc_generated import constellation_pb2, constellation_pb2_grpc, common_pb2
@@ -18,17 +21,17 @@ import io
 class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
     """星座服务实现"""
 
-    def _get_user_id_from_token(self, token, context):
-        """从token中获取用户ID"""
-        user_id = JWTAuth.get_user_id_from_token(token)
-        if user_id is None:
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Invalid or expired token")
+    def _verify_user_id(self, user_id, context):
+        """验证用户ID是否有效"""
+        user = UserDAL.get_by_id(user_id)
+        if user is None:
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Invalid user ID")
         return user_id
 
     def ListConstellations(self, request, context):
         """获取星座列表"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             constellations = ConstellationDAL.get_all_by_user(user_id)
 
             constellation_list = []
@@ -51,7 +54,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
     def GetConstellation(self, request, context):
         """获取星座详情（带卫星分页）"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             constellation = ConstellationDAL.get_by_id(request.constellation_id, user_id)
 
             if not constellation:
@@ -110,7 +113,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
     def CreateConstellation(self, request, context):
         """创建星座"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             constellation_name = request.constellation_name
 
             # 验证输入
@@ -150,7 +153,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
     def UpdateConstellation(self, request, context):
         """更新星座"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             constellation = ConstellationDAL.get_by_id(request.constellation_id, user_id)
 
             if not constellation:
@@ -200,7 +203,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
     def DeleteConstellation(self, request, context):
         """删除星座"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             constellation = ConstellationDAL.get_by_id(request.constellation_id, user_id)
 
             if not constellation:
@@ -235,7 +238,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
             for request in request_iterator:
                 # 第一次请求时验证token和constellation
                 if user_id is None:
-                    user_id = self._get_user_id_from_token(request.token, context)
+                    user_id = self._verify_user_id(request.user_id, context)
                     constellation_id = request.constellation_id
 
                     # 验证星座是否存在且属于当前用户
@@ -290,7 +293,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
     def ExportConstellations(self, request, context):
         """导出星座数据（TLE和ISL）"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             constellation_ids = request.constellation_ids
 
             if not constellation_ids:

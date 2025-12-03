@@ -47,7 +47,7 @@ message SatelliteInfo {
 
 // 获取星座列表请求
 message ListConstellationsRequest {
-  string token = 1;
+  string user_id = 1;
 }
 
 // 获取星座列表响应
@@ -58,7 +58,7 @@ message ListConstellationsResponse {
 
 // 获取星座详情请求
 message GetConstellationRequest {
-  string token = 1;
+  string user_id = 1;
   int32 constellation_id = 2;
   PaginationRequest pagination = 3;
 }
@@ -73,7 +73,7 @@ message GetConstellationResponse {
 
 // 创建星座请求
 message CreateConstellationRequest {
-  string token = 1;
+  string user_id = 1;
   string constellation_name = 2;
 }
 
@@ -85,7 +85,7 @@ message CreateConstellationResponse {
 
 // 更新星座请求
 message UpdateConstellationRequest {
-  string token = 1;
+  string user_id = 1;
   int32 constellation_id = 2;
   string constellation_name = 3;
 }
@@ -98,7 +98,7 @@ message UpdateConstellationResponse {
 
 // 删除星座请求
 message DeleteConstellationRequest {
-  string token = 1;
+  string user_id = 1;
   int32 constellation_id = 2;
 }
 
@@ -109,7 +109,7 @@ message DeleteConstellationResponse {
 
 // 导入卫星请求（流式）
 message ImportSatellitesRequest {
-  string token = 1;
+  string user_id = 1;
   int32 constellation_id = 2;
   int32 satellite_id = 3;
   string info_line1 = 4;
@@ -126,7 +126,7 @@ message ImportSatellitesResponse {
 
 // 导出星座请求
 message ExportConstellationsRequest {
-  string token = 1;
+  string user_id = 1;
   repeated int32 constellation_ids = 2;
 }
 

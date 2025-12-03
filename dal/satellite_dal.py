@@ -39,17 +39,19 @@ class SatelliteDAL:
         ).all()
 
     @staticmethod
-    def create(satellite_id: int, constellation_id: int, info_line1: str, info_line2: str) -> SatelliteModel:
-        """创建卫星"""
+    def create(satellite_id: int, constellation_id: int, info_line1: str, info_line2: str,
+               description: str) -> SatelliteModel:
+        """创建卫星（新增description参数）"""
         satellite = SatelliteModel(
             satellite_id=satellite_id,
             constellation_id=constellation_id,
             info_line1=info_line1,
-            info_line2=info_line2
+            info_line2=info_line2,
+            description=description  # 新增
         )
         db.session.add(satellite)
 
-        # 更新星座的卫星数量
+        # 更新星座的卫星数量（保持不变）
         constellation = ConstellationModel.query.get(constellation_id)
         if constellation:
             constellation.satellite_count += 1
@@ -59,12 +61,13 @@ class SatelliteDAL:
 
     @staticmethod
     def update(satellite: SatelliteModel, satellite_id: int, constellation_id: int,
-               info_line1: str, info_line2: str) -> SatelliteModel:
-        """更新卫星"""
+               info_line1: str, info_line2: str, description: str) -> SatelliteModel:
+        """更新卫星（新增description参数）"""
         satellite.satellite_id = satellite_id
         satellite.constellation_id = constellation_id
         satellite.info_line1 = info_line1
         satellite.info_line2 = info_line2
+        satellite.description = description  # 新增
         db.session.commit()
         return satellite
 

@@ -32,6 +32,7 @@ class SatelliteModel(db.Model):
     constellation_id = db.Column(db.Integer, db.ForeignKey("constellation.id"), nullable=False)  # 所属星座
     info_line1 = db.Column(db.Text, nullable=False)
     info_line2 = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=False)
 
     # 确保同一星座内业务ID不重复
     __table_args__ = (

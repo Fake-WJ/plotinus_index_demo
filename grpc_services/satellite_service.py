@@ -3,6 +3,9 @@ gRPC卫星服务实现
 """
 import sys
 import os
+
+from dal import UserDAL
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from grpc_generated import satellite_pb2, satellite_pb2_grpc, common_pb2
@@ -16,11 +19,11 @@ import grpc
 class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     """卫星服务实现"""
 
-    def _get_user_id_from_token(self, token, context):
-        """从token中获取用户ID"""
-        user_id = JWTAuth.get_user_id_from_token(token)
-        if user_id is None:
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Invalid or expired token")
+    def _verify_user_id(self, user_id, context):
+        """验证用户ID是否有效"""
+        user = UserDAL.get_by_id(user_id)
+        if user is None:
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Invalid user ID")
         return user_id
 
     def _verify_constellation_ownership(self, constellation_id, user_id, context):
@@ -33,7 +36,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     def ListSatellites(self, request, context):
         """获取卫星列表（分页）"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
 
             # 获取分页参数
             page = request.pagination.page if request.pagination.page else 1
@@ -77,7 +80,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     def GetSatellite(self, request, context):
         """获取卫星详情"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             satellite = SatelliteDAL.get_by_id(request.satellite_id)
 
             if not satellite:
@@ -139,7 +142,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     def CreateSatellite(self, request, context):
         """创建卫星"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
 
             # 验证星座所有权
             self._verify_constellation_ownership(request.constellation_id, user_id, context)
@@ -167,7 +170,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 request.satellite_id,
                 request.constellation_id,
                 request.info_line1,
-                request.info_line2
+                request.info_line2,
+                request.description
             )
 
             return satellite_pb2.CreateSatelliteResponse(
@@ -177,7 +181,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     satellite_id=satellite.satellite_id,
                     constellation_id=satellite.constellation_id,
                     info_line1=satellite.info_line1,
-                    info_line2=satellite.info_line2
+                    info_line2=satellite.info_line2,
+                    description=satellite.description
                 )
             )
 
@@ -187,7 +192,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     def UpdateSatellite(self, request, context):
         """更新卫星"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             satellite = SatelliteDAL.get_by_id(request.id)
 
             if not satellite:
@@ -229,7 +234,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 request.satellite_id,
                 request.constellation_id,
                 request.info_line1,
-                request.info_line2
+                request.info_line2,
+                request.description
             )
 
             return satellite_pb2.UpdateSatelliteResponse(
@@ -239,7 +245,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     satellite_id=satellite.satellite_id,
                     constellation_id=satellite.constellation_id,
                     info_line1=satellite.info_line1,
-                    info_line2=satellite.info_line2
+                    info_line2=satellite.info_line2,
+                    description=satellite.description
                 )
             )
 
@@ -249,7 +256,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     def DeleteSatellite(self, request, context):
         """删除卫星"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             satellite = SatelliteDAL.get_by_id(request.id)
 
             if not satellite:
@@ -276,7 +283,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     def GetSatellitesByConstellation(self, request, context):
         """按星座查询卫星"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
 
             # 验证星座所有权
             self._verify_constellation_ownership(request.constellation_id, user_id, context)
@@ -306,7 +313,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     def CreateLink(self, request, context):
         """创建卫星关联"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
 
             # 验证星座所有权
             self._verify_constellation_ownership(request.constellation_id, user_id, context)
@@ -373,7 +380,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     def DeleteLink(self, request, context):
         """删除卫星关联"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             link = LinkedSatelliteDAL.get_by_id(request.link_id)
 
             if not link:
@@ -413,7 +420,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
             for request in request_iterator:
                 # 第一次请求时验证token和constellation
                 if user_id is None:
-                    user_id = self._get_user_id_from_token(request.token, context)
+                    user_id = self._verify_user_id(request.user_id, context)
                     constellation_id = request.constellation_id
 
                     # 验证星座是否存在且属于当前用户

@@ -38,12 +38,12 @@ message LoginRequest {
 message LoginResponse {
   Status status = 1;
   User user = 2;
-  string token = 3;  // JWT token for authentication
+  string user_id = 3;  // JWT token for authentication
 }
 
 // 获取当前用户请求
 message GetCurrentUserRequest {
-  string token = 1;
+  string user_id = 1;
 }
 
 // 获取当前用户响应

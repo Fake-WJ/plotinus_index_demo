@@ -33,28 +33,25 @@ class AuthInterceptor(grpc.ServerInterceptor):
         if handler_call_details.method in self.WHITELIST_METHODS:
             return continuation(handler_call_details)
 
-        # 获取metadata中的token
+        # 获取metadata中的user_id
         metadata = dict(handler_call_details.invocation_metadata)
-        token = metadata.get('authorization', '')
-
-        # 去掉 "Bearer " 前缀（如果有）
-        if token.startswith('Bearer '):
-            token = token[7:]
-
-        # 验证token
-        user_id = JWTAuth.get_user_id_from_token(token)
-
-        if user_id is None:
-            # Token无效，返回未认证错误
+        try:
+            user_id = int(metadata.get('user_id', ''))
+        except (ValueError, TypeError):
             return grpc.unary_unary_rpc_method_handler(
                 lambda request, context: self._abort_unauthorized(context),
                 request_deserializer=lambda x: x,
                 response_serializer=lambda x: x
             )
 
-        # Token有效，将user_id注入到context中
-        # 注意：这里我们通过修改handler_call_details来传递user_id
-        # 在实际的handler中，我们需要从token中提取user_id
+        # 验证user_id
+        user = UserDAL.get_by_id(user_id)
+        if user is None:
+            return grpc.unary_unary_rpc_method_handler(
+                lambda request, context: self._abort_unauthorized(context),
+                request_deserializer=lambda x: x,
+                response_serializer=lambda x: x
+            )
 
         return continuation(handler_call_details)
 

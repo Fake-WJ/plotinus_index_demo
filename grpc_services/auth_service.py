@@ -53,12 +53,12 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
             context.abort(grpc.StatusCode.INTERNAL, f"Internal error: {str(e)}")
 
     def Login(self, request, context):
-        """用户登录"""
+        """用户登录 - 直接验证用户名密码，返回用户信息"""
         try:
             username = request.username
             password = request.password
 
-            # 查找用户
+            # 查找用户并验证密码
             user = UserDAL.get_by_username(username)
             if not user or not UserDAL.verify_password(user, password):
                 return auth_pb2.LoginResponse(
@@ -68,38 +68,23 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
                     )
                 )
 
-            # 生成JWT token
-            token = JWTAuth.generate_token(user.id, user.username)
-
+            # 不生成token，直接返回用户信息
             return auth_pb2.LoginResponse(
                 status=common_pb2.Status(code=200, message="Success"),
                 user=common_pb2.User(
                     id=user.id,
                     username=user.username
-                ),
-                token=token
+                )
             )
 
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, f"Internal error: {str(e)}")
 
     def GetCurrentUser(self, request, context):
-        """获取当前用户信息"""
+        """获取当前用户信息 - 通过用户ID验证"""
         try:
-            token = request.token
-
-            # 验证token并获取用户ID
-            user_id = JWTAuth.get_user_id_from_token(token)
-            if user_id is None:
-                return auth_pb2.GetCurrentUserResponse(
-                    status=common_pb2.Status(
-                        code=401,
-                        message="Invalid or expired token"
-                    )
-                )
-
-            # 获取用户信息
-            user = UserDAL.get_by_id(user_id)
+            # 直接使用用户ID查询
+            user = UserDAL.get_by_id(request.user_id)
             if not user:
                 return auth_pb2.GetCurrentUserResponse(
                     status=common_pb2.Status(

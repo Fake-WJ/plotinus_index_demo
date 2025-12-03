@@ -41,6 +41,7 @@ message Satellite {
   int32 constellation_id = 3;
   string info_line1 = 4;
   string info_line2 = 5;
+  string description=6;
 }
 
 // 卫星关联信息
@@ -53,7 +54,7 @@ message SatelliteLink {
 
 // 获取卫星列表请求
 message ListSatellitesRequest {
-  string token = 1;
+  string user_id = 1;
   PaginationRequest pagination = 2;
 }
 
@@ -66,7 +67,7 @@ message ListSatellitesResponse {
 
 // 获取卫星详情请求
 message GetSatelliteRequest {
-  string token = 1;
+  string user_id = 1;
   int32 satellite_id = 2;
 }
 
@@ -80,11 +81,12 @@ message GetSatelliteResponse {
 
 // 创建卫星请求
 message CreateSatelliteRequest {
-  string token = 1;
+  string user_id = 1;
   int32 satellite_id = 2;
   int32 constellation_id = 3;
   string info_line1 = 4;
   string info_line2 = 5;
+    string description=6;
 }
 
 // 创建卫星响应
@@ -95,12 +97,13 @@ message CreateSatelliteResponse {
 
 // 更新卫星请求
 message UpdateSatelliteRequest {
-  string token = 1;
+  string user_id = 1;
   int32 id = 2;
   int32 satellite_id = 3;
   int32 constellation_id = 4;
   string info_line1 = 5;
   string info_line2 = 6;
+  string description=6;
 }
 
 // 更新卫星响应
@@ -111,7 +114,7 @@ message UpdateSatelliteResponse {
 
 // 删除卫星请求
 message DeleteSatelliteRequest {
-  string token = 1;
+  string user_id = 1;
   int32 id = 2;
 }
 
@@ -122,7 +125,7 @@ message DeleteSatelliteResponse {
 
 // 按星座查询卫星请求
 message GetSatellitesByConstellationRequest {
-  string token = 1;
+  string user_id = 1;
   int32 constellation_id = 2;
 }
 
@@ -134,7 +137,7 @@ message GetSatellitesByConstellationResponse {
 
 // 创建卫星关联请求
 message CreateLinkRequest {
-  string token = 1;
+  string user_id = 1;
   int32 constellation_id = 2;
   int32 satellite_id1 = 3;
   int32 satellite_id2 = 4;
@@ -148,7 +151,7 @@ message CreateLinkResponse {
 
 // 删除卫星关联请求
 message DeleteLinkRequest {
-  string token = 1;
+  string user_id = 1;
   int32 link_id = 2;
 }
 
@@ -159,7 +162,7 @@ message DeleteLinkResponse {
 
 // 导入卫星关联请求（流式）
 message ImportLinksRequest {
-  string token = 1;
+  string user_id = 1;
   int32 constellation_id = 2;
   int32 satellite_id1 = 3;
   int32 satellite_id2 = 4;

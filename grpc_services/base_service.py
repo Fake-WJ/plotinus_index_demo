@@ -3,6 +3,9 @@ gRPC基座服务实现
 """
 import sys
 import os
+
+from dal import UserDAL
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from grpc_generated import base_pb2, base_pb2_grpc, common_pb2
@@ -14,17 +17,18 @@ import grpc
 class BaseService(base_pb2_grpc.BaseServiceServicer):
     """基座服务实现"""
 
-    def _get_user_id_from_token(self, token, context):
-        """从token中获取用户ID"""
-        user_id = JWTAuth.get_user_id_from_token(token)
-        if user_id is None:
-            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Invalid or expired token")
+    def _verify_user_id(self, user_id, context):
+        """验证用户ID是否有效"""
+        user = UserDAL.get_by_id(user_id)
+        if user is None:
+            context.abort(grpc.StatusCode.UNAUTHENTICATED, "Invalid user ID")
         return user_id
 
     def ListBases(self, request, context):
         """获取基座列表"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            # 直接使用请求中的user_id进行验证
+            user_id = self._verify_user_id(request.user_id, context)
             bases = BaseDAL.get_all_by_user(user_id)
 
             base_list = []
@@ -47,7 +51,7 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
     def GetBase(self, request, context):
         """获取基座详情"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             base = BaseDAL.get_by_id(request.base_id, user_id)
 
             if not base:
@@ -74,7 +78,7 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
     def CreateBase(self, request, context):
         """创建基座"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
 
             base_name = request.base_name
             info = request.info
@@ -116,7 +120,7 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
     def UpdateBase(self, request, context):
         """更新基座"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             base = BaseDAL.get_by_id(request.base_id, user_id)
 
             if not base:
@@ -167,7 +171,7 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
     def DeleteBase(self, request, context):
         """删除基座"""
         try:
-            user_id = self._get_user_id_from_token(request.token, context)
+            user_id = self._verify_user_id(request.user_id, context)
             base = BaseDAL.get_by_id(request.base_id, user_id)
 
             if not base:
