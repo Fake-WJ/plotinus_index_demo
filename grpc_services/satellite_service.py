@@ -11,7 +11,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from grpc_generated import satellite_pb2, satellite_pb2_grpc, common_pb2
 from dal.satellite_dal import SatelliteDAL, LinkedSatelliteDAL
 from dal.constellation_dal import ConstellationDAL
-from utils.jwt_auth import JWTAuth
 from history.model import LinkedSatelliteModel
 import grpc
 
@@ -55,7 +54,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     satellite_id=sat.satellite_id,
                     constellation_id=sat.constellation_id,
                     info_line1=sat.info_line1,
-                    info_line2=sat.info_line2
+                    info_line2=sat.info_line2,
+                    ext_info=sat.ext_info
                 ))
 
             # 构建分页响应
@@ -171,7 +171,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 request.constellation_id,
                 request.info_line1,
                 request.info_line2,
-                request.description
+                request.ext_info
             )
 
             return satellite_pb2.CreateSatelliteResponse(
@@ -182,7 +182,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     constellation_id=satellite.constellation_id,
                     info_line1=satellite.info_line1,
                     info_line2=satellite.info_line2,
-                    description=satellite.description
+                    ext_info=satellite.ext_info
                 )
             )
 
@@ -235,7 +235,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 request.constellation_id,
                 request.info_line1,
                 request.info_line2,
-                request.description
+                request.ext_info
             )
 
             return satellite_pb2.UpdateSatelliteResponse(
@@ -246,7 +246,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     constellation_id=satellite.constellation_id,
                     info_line1=satellite.info_line1,
                     info_line2=satellite.info_line2,
-                    description=satellite.description
+                    ext_info=satellite.ext_info
                 )
             )
 
@@ -299,7 +299,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     satellite_id=sat.satellite_id,
                     constellation_id=sat.constellation_id,
                     info_line1=sat.info_line1,
-                    info_line2=sat.info_line2
+                    info_line2=sat.info_line2,
+                    ext_info=sat.ext_info
                 ))
 
             return satellite_pb2.GetSatellitesByConstellationResponse(

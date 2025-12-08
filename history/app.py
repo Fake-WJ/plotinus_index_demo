@@ -5,7 +5,7 @@ from history.exts import db
 from flask_migrate import Migrate
 from history.config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS, SECRET_KEY
 from history.blueprints.auth import bp as auth_bp
-from history.blueprints import bp as constellation_bp
+from history.blueprints.constellation import bp as constellation_bp
 from history.blueprints.satellite import bp as satellite_bp
 from history.blueprints.base import bp as base_bp
 

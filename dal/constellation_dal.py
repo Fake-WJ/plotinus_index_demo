@@ -24,21 +24,24 @@ class ConstellationDAL:
         return ConstellationModel.query.filter_by(user_id=user_id).all()
 
     @staticmethod
-    def create(constellation_name: str, user_id: int) -> ConstellationModel:
+    def create(constellation_name: str, user_id: int,description: str) -> ConstellationModel:
         """创建星座"""
         constellation = ConstellationModel(
             constellation_name=constellation_name,
             satellite_count=0,
-            user_id=user_id
+            user_id=user_id,
+            description=description
         )
         db.session.add(constellation)
         db.session.commit()
         return constellation
 
+    # 修改update方法，支持更新description
     @staticmethod
-    def update(constellation: ConstellationModel, constellation_name: str) -> ConstellationModel:
+    def update(constellation: ConstellationModel, constellation_name: str, description: str) -> ConstellationModel:
         """更新星座"""
         constellation.constellation_name = constellation_name
+        constellation.description = description
         db.session.commit()
         return constellation
 

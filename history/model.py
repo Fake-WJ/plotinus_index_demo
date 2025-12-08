@@ -20,6 +20,7 @@ class ConstellationModel(db.Model):
     constellation_name = db.Column(db.String(100), nullable=False)
     satellite_count = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    description = db.Column(db.Text, nullable=False)
 
     user = db.relationship(UserModel, backref="constellations")
     satellites = db.relationship('SatelliteModel', backref='constellation', cascade='all, delete-orphan')
@@ -32,7 +33,7 @@ class SatelliteModel(db.Model):
     constellation_id = db.Column(db.Integer, db.ForeignKey("constellation.id"), nullable=False)  # 所属星座
     info_line1 = db.Column(db.Text, nullable=False)
     info_line2 = db.Column(db.Text, nullable=False)
-    description = db.Column(db.Text, nullable=False)
+    ext_info = db.Column(db.JSON, default=dict, nullable=False)
 
     # 确保同一星座内业务ID不重复
     __table_args__ = (
@@ -103,5 +104,4 @@ class BaseModel(db.Model):
     base_name = db.Column(db.String(100), nullable=False)
     info = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-
     user = db.relationship(UserModel, backref="bases")

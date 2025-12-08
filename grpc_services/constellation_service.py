@@ -4,6 +4,8 @@ gRPC星座服务实现
 import sys
 import os
 
+from numba.scripts.generate_lower_listing import description
+
 from dal import UserDAL
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -40,7 +42,8 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     id=const.id,
                     constellation_name=const.constellation_name,
                     satellite_count=const.satellite_count,
-                    user_id=const.user_id
+                    user_id=const.user_id,
+                    description=const.description
                 ))
 
             return constellation_pb2.ListConstellationsResponse(
@@ -82,7 +85,8 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     satellite_id=sat.satellite_id,
                     constellation_id=sat.constellation_id,
                     info_line1=sat.info_line1,
-                    info_line2=sat.info_line2
+                    info_line2=sat.info_line2,
+                    ext_info=sat.ext_info
                 ))
 
             # 构建分页响应
@@ -101,7 +105,8 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     id=constellation.id,
                     constellation_name=constellation.constellation_name,
                     satellite_count=constellation.satellite_count,
-                    user_id=constellation.user_id
+                    user_id=constellation.user_id,
+                    description = constellation.description
                 ),
                 satellites=satellite_list,
                 pagination=pagination_response
@@ -143,7 +148,8 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     id=constellation.id,
                     constellation_name=constellation.constellation_name,
                     satellite_count=constellation.satellite_count,
-                    user_id=constellation.user_id
+                    user_id=constellation.user_id,
+                    description = constellation.description
                 )
             )
 
@@ -193,7 +199,8 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     id=constellation.id,
                     constellation_name=constellation.constellation_name,
                     satellite_count=constellation.satellite_count,
-                    user_id=constellation.user_id
+                    user_id=constellation.user_id,
+                    description=constellation.description
                 )
             )
 
@@ -261,7 +268,8 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     satellite_id=satellite_id,
                     constellation_id=constellation_id,
                     info_line1=request.info_line1,
-                    info_line2=request.info_line2
+                    info_line2=request.info_line2,
+                    ext_info=request.ext_info
                 )
                 batch.append(new_satellite)
                 existing_satellite_ids.add(satellite_id)
