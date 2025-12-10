@@ -65,14 +65,14 @@ def parse_isl_file(file_path, constellation_id):
     return links
 
 
-def import_links_stream(channel, token, links):
+def import_links_stream(channel, user_id, links):
     """使用流式传输导入链接"""
     client = satellite_pb2_grpc.SatelliteServiceStub(channel)
 
     def request_generator():
         for link in links:
             yield satellite_pb2.ImportLinksRequest(
-                token=token,
+                user_id=user_id,
                 constellation_id=link['constellation_id'],
                 satellite_id1=link['satellite_id1'],
                 satellite_id2=link['satellite_id2']
@@ -107,7 +107,7 @@ def main():
     channel = grpc.insecure_channel('localhost:50051')
     auth_client = auth_pb2_grpc.AuthServiceStub(channel)
 
-    # 登录获取token
+    # 登录获取user_id
     print("[2/4] 用户登录...")
     try:
         login_resp = auth_client.Login(
@@ -117,8 +117,8 @@ def main():
             print(f"错误: 登录失败 - {login_resp.status.message}")
             sys.exit(1)
 
-        token = login_resp.token
-        print(f"登录成功，用户: {login_resp.user.username}")
+        user_id = str(login_resp.user.id)
+        print(f"登录成功，用户: {login_resp.user.username} (ID: {user_id})")
     except Exception as e:
         print(f"错误: 登录失败 - {str(e)}")
         sys.exit(1)
@@ -142,7 +142,7 @@ def main():
     # 导入链接
     print(f"\n[4/4] 开始导入链接...")
     try:
-        response = import_links_stream(channel, token, links)
+        response = import_links_stream(channel, user_id, links)
 
         print("\n" + "=" * 70)
         print("  导入结果")

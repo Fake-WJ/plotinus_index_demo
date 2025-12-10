@@ -3,6 +3,7 @@ gRPC卫星服务实现
 """
 import sys
 import os
+import json
 
 from dal import UserDAL
 
@@ -17,6 +18,23 @@ import grpc
 
 class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
     """卫星服务实现"""
+
+    @staticmethod
+    def _serialize_ext_info(ext_info: dict) -> str:
+        """将ext_info字典序列化为JSON字符串"""
+        if ext_info is None:
+            return "{}"
+        return json.dumps(ext_info, ensure_ascii=False)
+
+    @staticmethod
+    def _deserialize_ext_info(ext_info_str: str) -> dict:
+        """将JSON字符串反序列化为ext_info字典"""
+        if not ext_info_str or ext_info_str.strip() == "":
+            return {}
+        try:
+            return json.loads(ext_info_str)
+        except json.JSONDecodeError:
+            return {}
 
     def _verify_user_id(self, user_id, context):
         """验证用户ID是否有效"""
@@ -55,7 +73,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     constellation_id=sat.constellation_id,
                     info_line1=sat.info_line1,
                     info_line2=sat.info_line2,
-                    ext_info=sat.ext_info
+                    ext_info=self._serialize_ext_info(sat.ext_info)
                 ))
 
             # 构建分页响应
@@ -130,7 +148,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     satellite_id=satellite.satellite_id,
                     constellation_id=satellite.constellation_id,
                     info_line1=satellite.info_line1,
-                    info_line2=satellite.info_line2
+                    info_line2=satellite.info_line2,
+                    ext_info=self._serialize_ext_info(satellite.ext_info)
                 ),
                 links_from=links_from_list,
                 links_to=links_to_list
@@ -171,7 +190,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 request.constellation_id,
                 request.info_line1,
                 request.info_line2,
-                request.ext_info
+                self._deserialize_ext_info(request.ext_info)
             )
 
             return satellite_pb2.CreateSatelliteResponse(
@@ -182,7 +201,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     constellation_id=satellite.constellation_id,
                     info_line1=satellite.info_line1,
                     info_line2=satellite.info_line2,
-                    ext_info=satellite.ext_info
+                    ext_info=self._serialize_ext_info(satellite.ext_info)
                 )
             )
 
@@ -235,7 +254,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 request.constellation_id,
                 request.info_line1,
                 request.info_line2,
-                request.ext_info
+                self._deserialize_ext_info(request.ext_info)
             )
 
             return satellite_pb2.UpdateSatelliteResponse(
@@ -246,7 +265,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     constellation_id=satellite.constellation_id,
                     info_line1=satellite.info_line1,
                     info_line2=satellite.info_line2,
-                    ext_info=satellite.ext_info
+                    ext_info=self._serialize_ext_info(satellite.ext_info)
                 )
             )
 
@@ -300,7 +319,7 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     constellation_id=sat.constellation_id,
                     info_line1=sat.info_line1,
                     info_line2=sat.info_line2,
-                    ext_info=sat.ext_info
+                    ext_info=self._serialize_ext_info(sat.ext_info)
                 ))
 
             return satellite_pb2.GetSatellitesByConstellationResponse(

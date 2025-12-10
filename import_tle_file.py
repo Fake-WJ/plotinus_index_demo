@@ -82,14 +82,14 @@ def parse_tle_file(file_path, constellation_id):
     return satellites
 
 
-def import_satellites_stream(channel, token, satellites):
+def import_satellites_stream(channel, user_id, satellites):
     """使用流式传输导入卫星"""
     client = constellation_pb2_grpc.ConstellationServiceStub(channel)
 
     def request_generator():
         for sat in satellites:
             yield constellation_pb2.ImportSatellitesRequest(
-                token=token,
+                user_id=user_id,
                 constellation_id=sat['constellation_id'],
                 satellite_id=sat['satellite_id'],
                 info_line1=sat['info_line1'],
@@ -125,7 +125,7 @@ def main():
     channel = grpc.insecure_channel('localhost:50051')
     auth_client = auth_pb2_grpc.AuthServiceStub(channel)
 
-    # 登录获取token
+    # 登录获取user_id
     print("[2/4] 用户登录...")
     try:
         login_resp = auth_client.Login(
@@ -135,8 +135,8 @@ def main():
             print(f"错误: 登录失败 - {login_resp.status.message}")
             sys.exit(1)
 
-        token = login_resp.token
-        print(f"登录成功，用户: {login_resp.user.username}")
+        user_id = str(login_resp.user.id)
+        print(f"登录成功，用户: {login_resp.user.username} (ID: {user_id})")
     except Exception as e:
         print(f"错误: 登录失败 - {str(e)}")
         sys.exit(1)
@@ -160,7 +160,7 @@ def main():
     # 导入卫星
     print(f"\n[4/4] 开始导入卫星...")
     try:
-        response = import_satellites_stream(channel, token, satellites)
+        response = import_satellites_stream(channel, user_id, satellites)
 
         print("\n" + "=" * 70)
         print("  导入结果")

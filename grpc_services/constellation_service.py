@@ -4,8 +4,6 @@ gRPC星座服务实现
 import sys
 import os
 
-from numba.scripts.generate_lower_listing import description
-
 from dal import UserDAL
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,7 +11,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from grpc_generated import constellation_pb2, constellation_pb2_grpc, common_pb2
 from dal.constellation_dal import ConstellationDAL
 from dal.satellite_dal import SatelliteDAL, LinkedSatelliteDAL
-from utils.jwt_auth import JWTAuth
 from history.model import SatelliteModel
 import grpc
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -85,8 +82,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     satellite_id=sat.satellite_id,
                     constellation_id=sat.constellation_id,
                     info_line1=sat.info_line1,
-                    info_line2=sat.info_line2,
-                    ext_info=sat.ext_info
+                    info_line2=sat.info_line2
                 ))
 
             # 构建分页响应
@@ -140,7 +136,11 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                 )
 
             # 创建星座
-            constellation = ConstellationDAL.create(constellation_name, user_id)
+            constellation = ConstellationDAL.create(
+                constellation_name,
+                user_id,
+                request.description if hasattr(request, 'description') else ""
+            )
 
             return constellation_pb2.CreateConstellationResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -191,7 +191,11 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                 )
 
             # 更新星座
-            constellation = ConstellationDAL.update(constellation, constellation_name)
+            constellation = ConstellationDAL.update(
+                constellation,
+                constellation_name,
+                request.description if hasattr(request, 'description') else constellation.description
+            )
 
             return constellation_pb2.UpdateConstellationResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -269,7 +273,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     constellation_id=constellation_id,
                     info_line1=request.info_line1,
                     info_line2=request.info_line2,
-                    ext_info=request.ext_info
+                    ext_info={}  # ImportSatellitesRequest 不包含 ext_info
                 )
                 batch.append(new_satellite)
                 existing_satellite_ids.add(satellite_id)

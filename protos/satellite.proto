@@ -41,7 +41,7 @@ message Satellite {
   int32 constellation_id = 3;
   string info_line1 = 4;
   string info_line2 = 5;
-  string description=6;
+  string ext_info = 6;  // JSON字符串格式的扩展信息
 }
 
 // 卫星关联信息
@@ -86,7 +86,7 @@ message CreateSatelliteRequest {
   int32 constellation_id = 3;
   string info_line1 = 4;
   string info_line2 = 5;
-    string description=6;
+  string ext_info = 6;  // JSON字符串格式的扩展信息
 }
 
 // 创建卫星响应
@@ -103,7 +103,7 @@ message UpdateSatelliteRequest {
   int32 constellation_id = 4;
   string info_line1 = 5;
   string info_line2 = 6;
-  string description=7;
+  string ext_info = 7;  // JSON字符串格式的扩展信息
 }
 
 // 更新卫星响应

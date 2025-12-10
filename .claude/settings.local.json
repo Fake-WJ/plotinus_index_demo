@@ -5,7 +5,13 @@
       "Bash(tree:*)",
       "Bash(nul)",
       "Bash(dir:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(timeout /t 3)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(ping:*)",
+      "Bash(taskkill.exe:*)",
+      "Bash(cmd /c taskkill /F /PID 8760)"
     ],
     "deny": [],
     "ask": []
