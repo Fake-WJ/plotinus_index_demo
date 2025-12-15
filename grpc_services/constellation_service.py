@@ -80,7 +80,6 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
             cache_key = ConstellationKeys.info(request.constellation_id)
             cached_constellation = RedisClient.get_cached_data(cache_key)
 
-            constellation = None
             if cached_constellation:
                 # 缓存命中，但仍需验证用户权限
                 if cached_constellation.get("user_id") != user_id:

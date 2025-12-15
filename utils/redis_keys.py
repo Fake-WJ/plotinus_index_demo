@@ -124,6 +124,13 @@ class SatelliteKeys:
         """
         return f"{PROJECT_PREFIX}:satellite:ext:{constellation_id}:{satellite_id}"
 
+    @staticmethod
+    def list_by_user(user_id: int) -> str:
+        """用户的卫星列表
+        TTL: 10分钟（卫星列表相对稳定）
+        """
+        return f"{PROJECT_PREFIX}:satellite:list:user:{user_id}"
+
 
 # ==================== 链路相关键 ====================
 class LinkKeys:

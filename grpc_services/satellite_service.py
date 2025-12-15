@@ -6,6 +6,8 @@ import os
 import json
 
 from dal import UserDAL
+from utils.redis_client import RedisClient
+from utils.redis_keys import SatelliteKeys, TTL
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -55,6 +57,25 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
         try:
             user_id = self._verify_user_id(request.user_id, context)
 
+            # 在缓存中查询
+            cache_key = SatelliteKeys.list_by_user(user_id)
+            cached_satellite = RedisClient.get_cached_data(cache_key)
+
+            if cached_satellite:
+                # 缓存命中检查user_id
+                if cached_satellite.get("user_id") != user_id:
+                    return satellite_pb2.ListSatellitesResponse(
+                        status=common_pb2.Status(
+                            code=404,
+                            message="Satellite not found"
+                        )
+                    )
+                else:
+                    return satellite_pb2.ListSatellitesResponse(
+                        status=common_pb2.Status(code=200, message="Success"),
+                        satellites=[satellite_pb2.Satellite(**item) for item in cached_satellite]
+                    )
+
             # 检查是否使用分页
             use_pagination = request.pagination and (request.pagination.page > 0 or request.pagination.per_page > 0)
 
@@ -82,6 +103,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                         ext_info=self._serialize_ext_info(sat.ext_info)
                     ))
 
+                RedisClient.cache_data(cache_key, satellite_list, TTL.MEDIUM)
+
                 # 构建分页响应
                 pagination_response = common_pb2.PaginationResponse(
                     page=pagination.page,
@@ -104,6 +127,8 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                         info_line2=sat.info_line2,
                         ext_info=self._serialize_ext_info(sat.ext_info)
                     ))
+
+                RedisClient.cache_data(cache_key, satellite_list, TTL.MEDIUM)
 
             response = satellite_pb2.ListSatellitesResponse(
                 status=common_pb2.Status(code=200, message="Success"),
