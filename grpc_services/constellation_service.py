@@ -33,34 +33,39 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
         """获取星座列表"""
         try:
             user_id = self._verify_user_id(request.user_id, context)
-            constellations = ConstellationDAL.get_all_by_user(user_id)
 
-            # 从缓存查询
+            # 先从缓存查询
             cache_key = ConstellationKeys.list_by_user(user_id)
             cached_data = RedisClient.get_cached_data(cache_key)
             if cached_data:
-                return base_pb2.ListConstellationsResponse(
-                    status = common_pb2.Status(code=200, message="Success"),
-                    constellations = [constellation_pb2.Constellation(** item) for item in cached_data]
+                return constellation_pb2.ListConstellationsResponse(
+                    status=common_pb2.Status(code=200, message="Success"),
+                    constellations=[constellation_pb2.Constellation(**item) for item in cached_data]
                 )
 
             # 缓存未命中，从数据库查询
+            constellations = ConstellationDAL.get_all_by_user(user_id)
+
             constellation_list = []
             for const in constellations:
-                constellation_list.append(constellation_pb2.Constellation(
-                    id=const.id,
-                    constellation_name=const.constellation_name,
-                    satellite_count=const.satellite_count,
-                    user_id=const.user_id,
-                    description=const.description
-                ))
+                const_data = {
+                    "id": const.id,
+                    "constellation_name": const.constellation_name,
+                    "satellite_count": const.satellite_count,
+                    "user_id": const.user_id,
+                    "description": const.description
+                }
+                constellation_list.append(const_data)
 
             # 加入缓存
-            RedisClient.cache_data(cache_key, constellation_list, TTL.MEDIUM)
+            RedisClient.cache_data(cache_key, constellation_list, TTL.SHORT)
+
+            # 转换为 protobuf 对象
+            pb_constellation_list = [constellation_pb2.Constellation(**item) for item in constellation_list]
 
             return constellation_pb2.ListConstellationsResponse(
                 status=common_pb2.Status(code=200, message="Success"),
-                constellations=constellation_list
+                constellations=pb_constellation_list
             )
 
         except Exception as e:
@@ -70,15 +75,44 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
         """获取星座详情（带卫星分页）"""
         try:
             user_id = self._verify_user_id(request.user_id, context)
-            constellation = ConstellationDAL.get_by_id(request.constellation_id, user_id)
 
-            if not constellation:
-                return constellation_pb2.GetConstellationResponse(
-                    status=common_pb2.Status(
-                        code=404,
-                        message="Constellation not found"
+            # 先从缓存获取星座基本信息
+            cache_key = ConstellationKeys.info(request.constellation_id)
+            cached_constellation = RedisClient.get_cached_data(cache_key)
+
+            constellation = None
+            if cached_constellation:
+                # 缓存命中，但仍需验证用户权限
+                if cached_constellation.get("user_id") != user_id:
+                    return constellation_pb2.GetConstellationResponse(
+                        status=common_pb2.Status(
+                            code=404,
+                            message="Constellation not found"
+                        )
                     )
-                )
+                # 将缓存数据作为字典使用
+                constellation = type('obj', (object,), cached_constellation)()
+            else:
+                # 缓存未命中，从数据库查询
+                constellation = ConstellationDAL.get_by_id(request.constellation_id, user_id)
+
+                if not constellation:
+                    return constellation_pb2.GetConstellationResponse(
+                        status=common_pb2.Status(
+                            code=404,
+                            message="Constellation not found"
+                        )
+                    )
+
+                # 缓存星座基本信息
+                constellation_cache = {
+                    "id": constellation.id,
+                    "constellation_name": constellation.constellation_name,
+                    "satellite_count": constellation.satellite_count,
+                    "user_id": constellation.user_id,
+                    "description": constellation.description
+                }
+                RedisClient.cache_data(cache_key, constellation_cache, TTL.MEDIUM)
 
             # 检查是否使用分页
             use_pagination = request.pagination and (request.pagination.page > 0 or request.pagination.per_page > 0)
@@ -180,6 +214,23 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                 request.description if hasattr(request, 'description') else ""
             )
 
+            # 缓存新创建的星座信息
+            constellation_cache = {
+                "id": constellation.id,
+                "constellation_name": constellation.constellation_name,
+                "satellite_count": constellation.satellite_count,
+                "user_id": constellation.user_id,
+                "description": constellation.description
+            }
+            RedisClient.cache_data(
+                ConstellationKeys.info(constellation.id),
+                constellation_cache,
+                TTL.MEDIUM
+            )
+
+            # 删除用户的星座列表缓存
+            RedisClient.delete_cache(ConstellationKeys.list_by_user(user_id))
+
             return constellation_pb2.CreateConstellationResponse(
                 status=common_pb2.Status(code=200, message="Success"),
                 constellation=constellation_pb2.Constellation(
@@ -235,6 +286,12 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                 request.description if hasattr(request, 'description') else constellation.description
             )
 
+            # 删除相关缓存
+            RedisClient.delete_multiple_cache(
+                ConstellationKeys.info(constellation.id),
+                ConstellationKeys.list_by_user(user_id)
+            )
+
             return constellation_pb2.UpdateConstellationResponse(
                 status=common_pb2.Status(code=200, message="Success"),
                 constellation=constellation_pb2.Constellation(
@@ -263,7 +320,15 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     )
                 )
 
+            constellation_id = constellation.id
+
             ConstellationDAL.delete(constellation)
+
+            # 删除相关缓存
+            RedisClient.delete_multiple_cache(
+                ConstellationKeys.info(constellation_id),
+                ConstellationKeys.list_by_user(user_id)
+            )
 
             return constellation_pb2.DeleteConstellationResponse(
                 status=common_pb2.Status(code=200, message="Success")
