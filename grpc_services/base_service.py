@@ -3,8 +3,13 @@ gRPC基座服务实现
 """
 import sys
 import os
+from wsgiref.util import request_uri
+
+from sqlalchemy.sql import cache_key
 
 from dal import UserDAL
+from utils.redis_client import RedisClient
+from utils.redis_keys import BaseKeys, TTL
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -29,6 +34,17 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
         try:
             # 直接使用请求中的user_id进行验证
             user_id = self._verify_user_id(request.user_id, context)
+
+            # 尝试从缓存获取
+            cache_key = BaseKeys.list_by_user(user_id)
+            cached_data = RedisClient.get_cached_data(cache_key)
+            if cached_data:
+                return base_pb2.ListBasesResponse(
+                    status=common_pb2.Status(code=200, message="Success"),
+                    bases=[base_pb2.Base(** item) for item in cached_data]
+                )
+
+            # 缓存未命中，从数据库查询
             bases = BaseDAL.get_all_by_user(user_id)
 
             base_list = []
@@ -39,6 +55,9 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
                     info=base.info,
                     user_id=base.user_id
                 ))
+
+            # 缓存数据
+            RedisClient.cache_data(cache_key, base_list, TTL.MEDIUM)
 
             return base_pb2.ListBasesResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -53,8 +72,24 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
         try:
             user_id = self._verify_user_id(request.user_id, context)
             base = BaseDAL.get_by_id(request.base_id, user_id)
+            base_id = request.base_id
 
+            # 从缓存中查询
+            cache_key = BaseKeys.info(base_id)
+            cached_data = RedisClient.get_cached_data(cache_key)
+            if cached_data:
+                if "not_found" in cached_data:
+                    return base_pb2.GetBaseResponse(
+                        status=common_pb2.Status(code=404, message="Base not found")
+                    )
+                return base_pb2.GetBaseResponse(
+                    status=common_pb2.Status(code=200, message="Success"),
+                    base=base_pb2.Base(**cached_data)
+                )
+
+            # 缓存未命中。数据库查询
             if not base:
+                RedisClient.cache_data(cache_key, {"not_found": True}, TTL.VERY_SHORT)
                 return base_pb2.GetBaseResponse(
                     status=common_pb2.Status(
                         code=404,
@@ -62,15 +97,20 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
                     )
                 )
 
+            base_data = {
+                "id": base.id,
+                "base_name": base.base_name,
+                "info": base.info,
+                "user_id": base.user_id
+            }
+            RedisClient.cache_data(cache_key, base_data, TTL.MEDIUM)
+
             return base_pb2.GetBaseResponse(
                 status=common_pb2.Status(code=200, message="Success"),
-                base=base_pb2.Base(
-                    id=base.id,
-                    base_name=base.base_name,
-                    info=base.info,
-                    user_id=base.user_id
-                )
+                base=base_pb2.Base(**base_data)
             )
+
+
 
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, f"Internal error: {str(e)}")
@@ -103,6 +143,14 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
 
             # 创建基座
             base = BaseDAL.create(base_name, info, user_id)
+            cache_key = BaseKeys.info(base.id)
+            base_data = {
+                "id": base.id,
+                "base_name": base.base_name,
+                "info": base.info,
+                "user_id": base.user_id
+            }
+            RedisClient.cache_data(cache_key, base_data, TTL.MEDIUM)
 
             return base_pb2.CreateBaseResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -134,6 +182,9 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
             base_name = request.base_name
             info = request.info
 
+            # 删除原缓存信息
+            RedisClient.delete_cache(BaseKeys.info(base.id))
+
             # 验证输入
             if not base_name or not info:
                 return base_pb2.UpdateBaseResponse(
@@ -152,8 +203,16 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
                     )
                 )
 
-            # 更新基座
+            # 更新基座,加入缓存
             base = BaseDAL.update(base, base_name, info)
+            cache_key = BaseKeys.info(base.id)
+            base_data = {
+                "id": base.id,
+                "base_name": base.base_name,
+                "info": base.info,
+                "user_id": base.user_id
+            }
+            RedisClient.cache_data(cache_key, base_data, TTL.MEDIUM)
 
             return base_pb2.UpdateBaseResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -173,6 +232,9 @@ class BaseService(base_pb2_grpc.BaseServiceServicer):
         try:
             user_id = self._verify_user_id(request.user_id, context)
             base = BaseDAL.get_by_id(request.base_id, user_id)
+
+            #删除缓存信息
+            RedisClient.delete_cache(BaseKeys.info(base.id))
 
             if not base:
                 return base_pb2.DeleteBaseResponse(
