@@ -7,7 +7,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from grpc_generated import auth_pb2, auth_pb2_grpc, common_pb2
 from dal.user_dal import UserDAL
-from utils.jwt_auth import JWTAuth
+from utils.redis_client import RedisClient
+from utils.redis_keys import UserKeys, TTL
 import grpc
 
 
@@ -41,6 +42,17 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
             # 创建用户
             user = UserDAL.create_user(username, password)
 
+            # 缓存新用户信息到Redis
+            user_cache_data = {
+                "id": user.id,
+                "username": user.username
+            }
+            RedisClient.cache_data(
+                UserKeys.info(user.id),
+                user_cache_data,
+                TTL.MEDIUM_LONG
+            )
+
             return auth_pb2.RegisterResponse(
                 status=common_pb2.Status(code=200, message="Success"),
                 user=common_pb2.User(
@@ -68,6 +80,17 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
                     )
                 )
 
+            # 缓存用户信息到Redis
+            user_cache_data = {
+                "id": user.id,
+                "username": user.username
+            }
+            RedisClient.cache_data(
+                UserKeys.info(user.id),
+                user_cache_data,
+                TTL.MEDIUM_LONG
+            )
+
             # 不生成token，直接返回用户信息
             return auth_pb2.LoginResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -83,8 +106,21 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
     def GetCurrentUser(self, request, context):
         """获取当前用户信息 - 通过用户ID验证"""
         try:
-            # 直接使用用户ID查询
-            user = UserDAL.get_by_id(request.user_id)
+            user_id = request.user_id
+
+            # 先从缓存获取用户信息
+            cached_user = RedisClient.get_cached_data(UserKeys.info(user_id))
+            if cached_user:
+                return auth_pb2.GetCurrentUserResponse(
+                    status=common_pb2.Status(code=200, message="Success"),
+                    user=common_pb2.User(
+                        id=cached_user["id"],
+                        username=cached_user["username"]
+                    )
+                )
+
+            # 缓存未命中，从数据库查询
+            user = UserDAL.get_by_id(user_id)
             if not user:
                 return auth_pb2.GetCurrentUserResponse(
                     status=common_pb2.Status(
@@ -92,6 +128,17 @@ class AuthService(auth_pb2_grpc.AuthServiceServicer):
                         message="User not found"
                     )
                 )
+
+            # 将查询结果缓存
+            user_cache_data = {
+                "id": user.id,
+                "username": user.username
+            }
+            RedisClient.cache_data(
+                UserKeys.info(user.id),
+                user_cache_data,
+                TTL.MEDIUM_LONG
+            )
 
             return auth_pb2.GetCurrentUserResponse(
                 status=common_pb2.Status(code=200, message="Success"),

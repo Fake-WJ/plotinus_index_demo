@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class AuthInterceptor(grpc.ServerInterceptor):
     """
     认证拦截器
-    验证JWT token并将user_id注入到context中
+    验证user_id注入到context中
     """
 
     # 不需要认证的方法列表
