@@ -32,6 +32,18 @@ class SatelliteDAL:
         return pagination.items, pagination
 
     @staticmethod
+    def get_all_by_user(user_id: int) -> List[SatelliteModel]:
+        """获取用户所有卫星（不分页）"""
+        return SatelliteModel.query.join(
+            ConstellationModel
+        ).filter(
+            ConstellationModel.user_id == user_id
+        ).order_by(
+            ConstellationModel.constellation_name.asc(),
+            SatelliteModel.satellite_id.asc()
+        ).all()
+
+    @staticmethod
     def get_by_constellation(constellation_id: int) -> List[SatelliteModel]:
         """获取星座的所有卫星"""
         return SatelliteModel.query.filter_by(

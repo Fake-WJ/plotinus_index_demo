@@ -51,46 +51,70 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
         return constellation
 
     def ListSatellites(self, request, context):
-        """获取卫星列表（分页）"""
+        """获取卫星列表（可选分页）"""
         try:
             user_id = self._verify_user_id(request.user_id, context)
 
-            # 获取分页参数
-            page = request.pagination.page if request.pagination.page else 1
-            per_page = request.pagination.per_page if request.pagination.per_page else 20
+            # 检查是否使用分页
+            use_pagination = request.pagination and (request.pagination.page > 0 or request.pagination.per_page > 0)
 
-            # 获取用户的所有卫星（分页）
-            satellites, pagination = SatelliteDAL.get_all_by_user_paginated(
-                user_id, page, per_page
-            )
-
-            # 构建卫星列表
             satellite_list = []
-            for sat in satellites:
-                satellite_list.append(satellite_pb2.Satellite(
-                    id=sat.id,
-                    satellite_id=sat.satellite_id,
-                    constellation_id=sat.constellation_id,
-                    info_line1=sat.info_line1,
-                    info_line2=sat.info_line2,
-                    ext_info=self._serialize_ext_info(sat.ext_info)
-                ))
+            pagination_response = None
 
-            # 构建分页响应
-            pagination_response = common_pb2.PaginationResponse(
-                page=pagination.page,
-                per_page=pagination.per_page,
-                total_pages=pagination.pages,
-                total_items=pagination.total,
-                has_next=pagination.has_next,
-                has_prev=pagination.has_prev
-            )
+            if use_pagination:
+                # 使用分页
+                page = request.pagination.page if request.pagination.page else 1
+                per_page = request.pagination.per_page if request.pagination.per_page else 20
 
-            return satellite_pb2.ListSatellitesResponse(
+                # 获取用户的所有卫星（分页）
+                satellites, pagination = SatelliteDAL.get_all_by_user_paginated(
+                    user_id, page, per_page
+                )
+
+                # 构建卫星列表
+                for sat in satellites:
+                    satellite_list.append(satellite_pb2.Satellite(
+                        id=sat.id,
+                        satellite_id=sat.satellite_id,
+                        constellation_id=sat.constellation_id,
+                        info_line1=sat.info_line1,
+                        info_line2=sat.info_line2,
+                        ext_info=self._serialize_ext_info(sat.ext_info)
+                    ))
+
+                # 构建分页响应
+                pagination_response = common_pb2.PaginationResponse(
+                    page=pagination.page,
+                    per_page=pagination.per_page,
+                    total_pages=pagination.pages,
+                    total_items=pagination.total,
+                    has_next=pagination.has_next,
+                    has_prev=pagination.has_prev
+                )
+            else:
+                # 不使用分页，返回所有卫星
+                satellites = SatelliteDAL.get_all_by_user(user_id)
+
+                for sat in satellites:
+                    satellite_list.append(satellite_pb2.Satellite(
+                        id=sat.id,
+                        satellite_id=sat.satellite_id,
+                        constellation_id=sat.constellation_id,
+                        info_line1=sat.info_line1,
+                        info_line2=sat.info_line2,
+                        ext_info=self._serialize_ext_info(sat.ext_info)
+                    ))
+
+            response = satellite_pb2.ListSatellitesResponse(
                 status=common_pb2.Status(code=200, message="Success"),
-                satellites=satellite_list,
-                pagination=pagination_response
+                satellites=satellite_list
             )
+
+            # 只有使用分页时才设置分页响应
+            if pagination_response:
+                response.pagination.CopyFrom(pagination_response)
+
+            return response
 
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, f"Internal error: {str(e)}")

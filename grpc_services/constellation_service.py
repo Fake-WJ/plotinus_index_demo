@@ -5,10 +5,12 @@ import sys
 import os
 
 from dal import UserDAL
+from utils.redis_client import RedisClient
+from utils.redis_keys import BaseKeys, ConstellationKeys, TTL
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from grpc_generated import constellation_pb2, constellation_pb2_grpc, common_pb2
+from grpc_generated import constellation_pb2, constellation_pb2_grpc, common_pb2, base_pb2
 from dal.constellation_dal import ConstellationDAL
 from dal.satellite_dal import SatelliteDAL, LinkedSatelliteDAL
 from history.model import SatelliteModel
@@ -33,6 +35,16 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
             user_id = self._verify_user_id(request.user_id, context)
             constellations = ConstellationDAL.get_all_by_user(user_id)
 
+            # 从缓存查询
+            cache_key = ConstellationKeys.list_by_user(user_id)
+            cached_data = RedisClient.get_cached_data(cache_key)
+            if cached_data:
+                return base_pb2.ListConstellationsResponse(
+                    status = common_pb2.Status(code=200, message="Success"),
+                    constellations = [constellation_pb2.Constellation(** item) for item in cached_data]
+                )
+
+            # 缓存未命中，从数据库查询
             constellation_list = []
             for const in constellations:
                 constellation_list.append(constellation_pb2.Constellation(
@@ -42,6 +54,9 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     user_id=const.user_id,
                     description=const.description
                 ))
+
+            # 加入缓存
+            RedisClient.cache_data(cache_key, constellation_list, TTL.MEDIUM)
 
             return constellation_pb2.ListConstellationsResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -65,37 +80,55 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     )
                 )
 
-            # 获取分页参数
-            page = request.pagination.page if request.pagination.page else 1
-            per_page = request.pagination.per_page if request.pagination.per_page else 20
+            # 检查是否使用分页
+            use_pagination = request.pagination and (request.pagination.page > 0 or request.pagination.per_page > 0)
 
-            # 获取卫星列表（分页）
-            satellites, pagination = ConstellationDAL.get_satellites_paginated(
-                constellation.id, page, per_page
-            )
-
-            # 构建卫星信息列表
             satellite_list = []
-            for sat in satellites:
-                satellite_list.append(constellation_pb2.SatelliteInfo(
-                    id=sat.id,
-                    satellite_id=sat.satellite_id,
-                    constellation_id=sat.constellation_id,
-                    info_line1=sat.info_line1,
-                    info_line2=sat.info_line2
-                ))
+            pagination_response = None
 
-            # 构建分页响应
-            pagination_response = common_pb2.PaginationResponse(
-                page=pagination.page,
-                per_page=pagination.per_page,
-                total_pages=pagination.pages,
-                total_items=pagination.total,
-                has_next=pagination.has_next,
-                has_prev=pagination.has_prev
-            )
+            if use_pagination:
+                # 使用分页
+                page = request.pagination.page if request.pagination.page else 1
+                per_page = request.pagination.per_page if request.pagination.per_page else 20
 
-            return constellation_pb2.GetConstellationResponse(
+                # 获取卫星列表（分页）
+                satellites, pagination = ConstellationDAL.get_satellites_paginated(
+                    constellation.id, page, per_page
+                )
+
+                # 构建卫星信息列表
+                for sat in satellites:
+                    satellite_list.append(constellation_pb2.SatelliteInfo(
+                        id=sat.id,
+                        satellite_id=sat.satellite_id,
+                        constellation_id=sat.constellation_id,
+                        info_line1=sat.info_line1,
+                        info_line2=sat.info_line2
+                    ))
+
+                # 构建分页响应
+                pagination_response = common_pb2.PaginationResponse(
+                    page=pagination.page,
+                    per_page=pagination.per_page,
+                    total_pages=pagination.pages,
+                    total_items=pagination.total,
+                    has_next=pagination.has_next,
+                    has_prev=pagination.has_prev
+                )
+            else:
+                # 不使用分页，返回所有卫星
+                satellites = SatelliteDAL.get_by_constellation(constellation.id)
+
+                for sat in satellites:
+                    satellite_list.append(constellation_pb2.SatelliteInfo(
+                        id=sat.id,
+                        satellite_id=sat.satellite_id,
+                        constellation_id=sat.constellation_id,
+                        info_line1=sat.info_line1,
+                        info_line2=sat.info_line2
+                    ))
+
+            response = constellation_pb2.GetConstellationResponse(
                 status=common_pb2.Status(code=200, message="Success"),
                 constellation=constellation_pb2.Constellation(
                     id=constellation.id,
@@ -104,9 +137,14 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     user_id=constellation.user_id,
                     description = constellation.description
                 ),
-                satellites=satellite_list,
-                pagination=pagination_response
+                satellites=satellite_list
             )
+
+            # 只有使用分页时才设置分页响应
+            if pagination_response:
+                response.pagination.CopyFrom(pagination_response)
+
+            return response
 
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, f"Internal error: {str(e)}")
