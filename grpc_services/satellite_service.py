@@ -5,6 +5,8 @@ import sys
 import os
 import json
 
+from openai.types.fine_tuning import ReinforcementMethod
+
 from dal import UserDAL
 from utils.redis_client import RedisClient
 from utils.redis_keys import SatelliteKeys, TTL
@@ -144,11 +146,18 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, f"Internal error: {str(e)}")
 
+
     def GetSatellite(self, request, context):
         """获取卫星详情"""
         try:
             user_id = self._verify_user_id(request.user_id, context)
-            satellite = SatelliteDAL.get_by_id(request.satellite_id)
+            cache_key = SatelliteKeys.info(request.constellation_id, request.satellite_id)
+            cache_satellite = RedisClient.get_cached_data(cache_key)
+
+            if cache_satellite:
+                satellite = cache_satellite
+            else:
+                satellite = SatelliteDAL.get_by_id(request.id)
 
             if not satellite:
                 return satellite_pb2.GetSatelliteResponse(
@@ -242,6 +251,17 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 self._deserialize_ext_info(request.ext_info)
             )
 
+            # 缓存新创建的卫星数据
+            satellite_cache = {
+                "id" : satellite.id,
+                "satellite_id" : satellite.satellite_id,
+                "constellation_id" : satellite.constellation_id,
+                "info_line1" : satellite.info_line1,
+                "info_line2" : satellite.info_line2,
+                "ext_info" : self._serialize_ext_info(satellite.ext_info)
+            }
+            RedisClient.cache_data(SatelliteKeys.info(satellite.constellation_id, satellite.satellite_id), satellite_cache, TTL.MEDIUM)
+
             return satellite_pb2.CreateSatelliteResponse(
                 status=common_pb2.Status(code=200, message="Success"),
                 satellite=satellite_pb2.Satellite(
@@ -296,6 +316,9 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                     )
                 )
 
+            # 删除原卫星缓存
+            RedisClient.delete_cache(SatelliteKeys.info(satellite.constellation_id, satellite.satellite_id))
+
             # 更新卫星
             satellite = SatelliteDAL.update(
                 satellite,
@@ -305,6 +328,17 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 request.info_line2,
                 self._deserialize_ext_info(request.ext_info)
             )
+
+            # 缓存新创建的卫星数据
+            satellite_cache = {
+                "id" : satellite.id,
+                "satellite_id" : satellite.satellite_id,
+                "constellation_id" : satellite.constellation_id,
+                "info_line1" : satellite.info_line1,
+                "info_line2" : satellite.info_line2,
+                "ext_info" : self._serialize_ext_info(satellite.ext_info)
+            }
+            RedisClient.cache_data(SatelliteKeys.info(satellite.constellation_id, satellite.satellite_id), satellite_cache, TTL.MEDIUM)
 
             return satellite_pb2.UpdateSatelliteResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -341,6 +375,9 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
             # 删除卫星
             SatelliteDAL.delete(satellite)
 
+            # 删除原卫星缓存
+            RedisClient.delete_cache(SatelliteKeys.info(satellite.constellation_id, satellite.satellite_id))
+
             return satellite_pb2.DeleteSatelliteResponse(
                 status=common_pb2.Status(code=200, message="Success")
             )
@@ -356,25 +393,39 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
             # 验证星座所有权
             self._verify_constellation_ownership(request.constellation_id, user_id, context)
 
-            # 获取卫星列表
-            satellites = SatelliteDAL.get_by_constellation(request.constellation_id)
+            # 从缓存中查询
+            cache_keys = SatelliteKeys.list_by_constellation(request.constellation_id)
+            cache_data = RedisClient.get_cached_data(cache_keys)
+            if not cache_data:
+                # 获取卫星列表
+                satellites = SatelliteDAL.get_by_constellation(request.constellation_id)
 
-            # 构建卫星列表
-            satellite_list = []
-            for sat in satellites:
-                satellite_list.append(satellite_pb2.Satellite(
-                    id=sat.id,
-                    satellite_id=sat.satellite_id,
-                    constellation_id=sat.constellation_id,
-                    info_line1=sat.info_line1,
-                    info_line2=sat.info_line2,
-                    ext_info=self._serialize_ext_info(sat.ext_info)
-                ))
+                # 构建卫星列表
+                satellite_list = []
+                for sat in satellites:
+                    satellite_list.append(satellite_pb2.Satellite(
+                        id=sat.id,
+                        satellite_id=sat.satellite_id,
+                        constellation_id=sat.constellation_id,
+                        info_line1=sat.info_line1,
+                        info_line2=sat.info_line2,
+                        ext_info=self._serialize_ext_info(sat.ext_info)
+                    ))
 
-            return satellite_pb2.GetSatellitesByConstellationResponse(
-                status=common_pb2.Status(code=200, message="Success"),
-                satellites=satellite_list
-            )
+                # 加入缓存
+                RedisClient.cache_data(cache_keys, satellite_list, TTL.MEDIUM)
+
+                return satellite_pb2.GetSatellitesByConstellationResponse(
+                    status=common_pb2.Status(code=200, message="Success"),
+                    satellites=satellite_list
+                )
+            else:
+                return satellite_pb2.GetSatellitesByConstellationResponse(
+                    status=common_pb2.Status(code=200, message="Success"),
+                    satellites=[satellite_pb2.Satellite(**item) for item in cache_data]
+                )
+
+
 
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, f"Internal error: {str(e)}")
