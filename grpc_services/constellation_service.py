@@ -6,7 +6,7 @@ import os
 
 from dal import UserDAL
 from utils.redis_client import RedisClient
-from utils.redis_keys import BaseKeys, ConstellationKeys, TTL
+from utils.redis_keys import ConstellationKeys, TTL
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -82,11 +82,11 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
 
             if cached_constellation:
                 # 缓存命中，但仍需验证用户权限
-                if cached_constellation.get("user_id") != user_id:
+                if int(cached_constellation.get("user_id")) != int(user_id):
                     return constellation_pb2.GetConstellationResponse(
                         status=common_pb2.Status(
                             code=404,
-                            message="Constellation not found"
+                            message="user is not authorized"
                         )
                     )
                 # 将缓存数据作为字典使用
@@ -99,7 +99,7 @@ class ConstellationService(constellation_pb2_grpc.ConstellationServiceServicer):
                     return constellation_pb2.GetConstellationResponse(
                         status=common_pb2.Status(
                             code=404,
-                            message="Constellation not found"
+                            message="Constellation not found in mysql"
                         )
                     )
 
