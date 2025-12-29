@@ -5,6 +5,7 @@ import sys
 import os
 import json
 
+from google.protobuf.json_format import MessageToDict
 from openai.types.fine_tuning import ReinforcementMethod
 
 from dal import UserDAL
@@ -58,29 +59,25 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
         """获取卫星列表（可选分页）"""
         try:
             user_id = self._verify_user_id(request.user_id, context)
-
             # 在缓存中查询
             cache_key = SatelliteKeys.list_by_user(user_id)
             cached_satellite = RedisClient.get_cached_data(cache_key)
-
             if cached_satellite:
                 # 缓存命中检查user_id
                 if cached_satellite.get("user_id") != user_id:
                     return satellite_pb2.ListSatellitesResponse(
-                        status=common_pb2.Status(
-                            code=404,
-                            message="Satellite not found"
-                        )
+                        status=common_pb2.Status(code=404, message="Satellite not found")
                     )
                 else:
+                    # 将字典列表转换为Satellite对象列表
+                    satellites = [satellite_pb2.Satellite(**item) for item in cached_satellite]
                     return satellite_pb2.ListSatellitesResponse(
                         status=common_pb2.Status(code=200, message="Success"),
-                        satellites=[satellite_pb2.Satellite(**item) for item in cached_satellite]
+                        satellites=satellites
                     )
 
             # 检查是否使用分页
             use_pagination = request.pagination and (request.pagination.page > 0 or request.pagination.per_page > 0)
-
             satellite_list = []
             pagination_response = None
 
@@ -105,7 +102,9 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                         ext_info=self._serialize_ext_info(sat.ext_info)
                     ))
 
-                RedisClient.cache_data(cache_key, satellite_list, TTL.MEDIUM)
+                # 将卫星列表转换为字典列表进行缓存
+                satellite_dict_list = [MessageToDict(sat) for sat in satellite_list]
+                RedisClient.cache_data(cache_key, satellite_dict_list, TTL.MEDIUM)
 
                 # 构建分页响应
                 pagination_response = common_pb2.PaginationResponse(
@@ -119,7 +118,6 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
             else:
                 # 不使用分页，返回所有卫星
                 satellites = SatelliteDAL.get_all_by_user(user_id)
-
                 for sat in satellites:
                     satellite_list.append(satellite_pb2.Satellite(
                         id=sat.id,
@@ -130,7 +128,9 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                         ext_info=self._serialize_ext_info(sat.ext_info)
                     ))
 
-                RedisClient.cache_data(cache_key, satellite_list, TTL.MEDIUM)
+                # 将卫星列表转换为字典列表进行缓存
+                satellite_dict_list = [MessageToDict(sat) for sat in satellite_list]
+                RedisClient.cache_data(cache_key, satellite_dict_list, TTL.MEDIUM)
 
             response = satellite_pb2.ListSatellitesResponse(
                 status=common_pb2.Status(code=200, message="Success"),
@@ -142,7 +142,6 @@ class SatelliteService(satellite_pb2_grpc.SatelliteServiceServicer):
                 response.pagination.CopyFrom(pagination_response)
 
             return response
-
         except Exception as e:
             context.abort(grpc.StatusCode.INTERNAL, f"Internal error: {str(e)}")
 
